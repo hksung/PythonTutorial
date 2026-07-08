@@ -6,7 +6,7 @@
   const panel = root.querySelector(".helper-chatbot__panel");
   const closeButton = root.querySelector(".helper-chatbot__close");
   const messages = root.querySelector(".helper-chatbot__messages");
-  const supportedTermsBlock = root.querySelector("[data-supported-terms]");
+  const supportedTermButtons = root.querySelectorAll("[data-term]");
 
   const glossary = [
     {
@@ -313,18 +313,9 @@
 
   let panelOpen = false;
 
-  if (supportedTermsBlock) {
-    supportedTermsBlock.replaceChildren(
-      ...glossary.map((entry) => {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "helper-chatbot__term";
-        button.textContent = entry.term;
-        button.addEventListener("click", () => explainTerm(entry.term));
-        return button;
-      })
-    );
-  }
+  supportedTermButtons.forEach((button) => {
+    button.addEventListener("click", () => explainTerm(button.getAttribute("data-term") || button.textContent || ""));
+  });
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && panelOpen) {
@@ -334,10 +325,6 @@
 
   launcher.addEventListener("click", () => togglePanel(true));
   closeButton.addEventListener("click", () => togglePanel(false));
-
-  addMessage("assistant", {
-    html: "<p>Click a supported term below to see its explanation.</p>"
-  });
 
   function togglePanel(open) {
     panelOpen = open;
@@ -385,13 +372,13 @@
   }
 
   function addMessage(role, content) {
-    const html = typeof content === "string"
-      ? `<p>${escapeHtml(content)}</p>`
-      : content;
+    const message = typeof content === "string"
+      ? { title: role === "assistant" ? "Helper" : "You", html: `<p>${escapeHtml(content)}</p>` }
+      : { title: content.title || (role === "assistant" ? "Helper" : "You"), html: content.html || "" };
 
     const node = document.createElement("article");
     node.className = `helper-chatbot__message helper-chatbot__message--${role}`;
-    node.innerHTML = `<strong>${role === "assistant" ? "Helper" : "You"}</strong>${html}`;
+    node.innerHTML = `<strong>${escapeHtml(message.title)}</strong>${message.html}`;
     messages.appendChild(node);
     messages.scrollTop = messages.scrollHeight;
   }
