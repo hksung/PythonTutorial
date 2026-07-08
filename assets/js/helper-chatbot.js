@@ -529,18 +529,7 @@
   }
 
   async function fetchFreeLlmAnswer(questionText, glossaryEntry) {
-    const context = glossaryEntry
-      ? `Glossary hint: ${glossaryEntry.title} - ${glossaryEntry.summary}`
-      : "";
-
-    const prompt = [
-      "You are an NLP tutoring assistant.",
-      "Answer in 2-4 concise sentences.",
-      "Focus on practical meaning for beginners.",
-      "If uncertain, say what is uncertain.",
-      context,
-      `Question: ${questionText}`
-    ].filter(Boolean).join("\n");
+    const prompt = buildReliablePrompt(questionText, glossaryEntry);
 
     const requestCandidates = [{ model: "auto", url: `${FREE_LLM_BASE_URL}/${encodeURIComponent(prompt)}` }]
       .concat(FREE_LLM_MODELS.map((model) => {
@@ -555,13 +544,58 @@
       const text = await fetchPlainTextWithTimeout(candidate.url, FREE_LLM_TIMEOUT_MS);
       if (!text) continue;
 
+      const cleaned = text.replace(/^answer\s*:\s*/i, "").slice(0, 1200).trim();
+      if (!isReliableLlmAnswer(cleaned, glossaryEntry)) continue;
+
       return {
-        text: text.replace(/^answer\s*:\s*/i, "").slice(0, 1200).trim(),
+        text: cleaned,
         model: candidate.model
       };
     }
 
     return null;
+  }
+
+  function buildReliablePrompt(questionText, glossaryEntry) {
+    const context = glossaryEntry
+      ? `Glossary hint (authoritative): ${glossaryEntry.title} - ${glossaryEntry.summary}`
+      : "";
+
+    return [
+      "You are a Python and NLP tutoring assistant for beginners.",
+      "Output language: English only.",
+      "Return exactly 2-3 short sentences.",
+      "Sentence 1: give a clear beginner-friendly definition.",
+      "Sentence 2: give one concrete Python or NLP example.",
+      "If relevant, sentence 3: contrast with a nearby concept.",
+      "Do not use bullet points, markdown tables, or code blocks.",
+      "If uncertain, say what is uncertain instead of guessing.",
+      "When a glossary hint is provided, stay consistent with it.",
+      context,
+      `Question: ${questionText}`
+    ].filter(Boolean).join("\n");
+  }
+
+  function isReliableLlmAnswer(text, glossaryEntry) {
+    if (!text) return false;
+
+    const normalizedText = normalizeForSearch(text);
+    if (normalizedText.length < 30) return false;
+    if (normalizedText.length > 900) return false;
+
+    const uncertainOnly = /^(i\s*(am|'m)?\s*not\s*sure|uncertain|i\s*cannot\s*answer)/i;
+    if (uncertainOnly.test(text.trim())) return false;
+
+    if (!glossaryEntry) return true;
+
+    const titleMatch = includesAsWholeTerm(normalizedText, normalizeForSearch(glossaryEntry.title));
+    const termMatch = includesAsWholeTerm(normalizedText, normalizeForSearch(glossaryEntry.term));
+    const summaryTokens = normalizeForSearch(glossaryEntry.summary)
+      .split(/\s+/)
+      .filter((token) => token.length >= 5);
+    const hasSummaryToken = summaryTokens.some((token) => includesAsWholeTerm(normalizedText, token));
+
+    return titleMatch || termMatch || hasSummaryToken;
   }
 
   async function fetchPlainTextWithTimeout(url, timeoutMs) {
