@@ -319,7 +319,8 @@
   let visibleTerms = [];
   const termExplanationCache = new Map();
   const FREE_LLM_BASE_URL = "https://text.pollinations.ai";
-  const FREE_LLM_MODEL = "mistral";
+  const FREE_LLM_MODELS = ["mistral", "qwen", "llama"];
+  const FREE_LLM_TIMEOUT_MS = 12000;
 
   const MAX_VISIBLE_TERMS = 12;
   const MAX_MESSAGES = 14;
@@ -405,7 +406,7 @@
       return;
     }
 
-    // Show local glossary definition first, then enrich from wiki sources.
+    // Show local glossary definition first, then try free LLM enrichment.
     addMessage("assistant", {
       html: [
         `<p><strong>${escapeHtml(entry.title)}</strong> (Glossary)</p>`,
@@ -414,24 +415,36 @@
     });
 
     addMessage("assistant", {
-      html: `<p>Looking up <strong>${escapeHtml(entry.term)}</strong> from Wikipedia and Wikidata...</p>`
+      html: `<p>Asking free open LLM for <strong>${escapeHtml(entry.term)}</strong>...</p>`
     });
 
     try {
-      const explanation = await fetchTermExplanation(entry);
-      if (!explanation) {
+      const llmAnswer = await fetchFreeLlmAnswer(`Explain the term '${entry.term}' for an NLP beginner.`, entry);
+      if (!llmAnswer) {
         addMessage("assistant", {
           html: [
-            `<p>I could not find a reliable Wikipedia/Wikidata entry for <strong>${escapeHtml(entry.term)}</strong>.</p>`,
+            `<p>I could not reach a reliable free LLM response for <strong>${escapeHtml(entry.term)}</strong>.</p>`,
             `<p>I kept the glossary definition above as the primary answer.</p>`
           ].join("")
         });
         return;
       }
 
+      const explanation = {
+        title: `${entry.title} (LLM)`,
+        summary: llmAnswer.text,
+        wikipediaUrl: "",
+        wikidataId: "",
+        wikidataDescription: "",
+        wikidataUrl: ""
+      };
+
       termExplanationCache.set(cacheKey, explanation);
       addMessage("assistant", {
-        html: renderExplanationHtml(explanation)
+        html: [
+          renderExplanationHtml(explanation),
+          `<p><em>Source:</em> Free open LLM (${escapeHtml(llmAnswer.model)})</p>`
+        ].join("")
       });
     } catch (error) {
       addMessage("assistant", {
@@ -475,7 +488,7 @@
       if (llmAnswer) {
         const llmExplanation = {
           title: glossaryEntry ? `${glossaryEntry.title} (LLM)` : "LLM Answer",
-          summary: llmAnswer,
+          summary: llmAnswer.text,
           wikipediaUrl: "",
           wikidataId: "",
           wikidataDescription: "",
@@ -486,33 +499,24 @@
         addMessage("assistant", {
           html: [
             renderExplanationHtml(llmExplanation),
-            `<p><em>Source:</em> Free open LLM (${escapeHtml(FREE_LLM_MODEL)})</p>`
+            `<p><em>Source:</em> Free open LLM (${escapeHtml(llmAnswer.model)})</p>`
           ].join("")
         });
         return;
       }
 
-      const explanation = await fetchQuestionExplanation(query, glossaryEntry);
-      if (!explanation) {
-        if (glossaryEntry) {
-          addMessage("assistant", {
-            html: `<p>I could not verify a better Wikipedia/Wikidata page, so I used the glossary answer above.</p>`
-          });
-          return;
-        }
-
+      if (glossaryEntry) {
         addMessage("assistant", {
-          html: [
-            `<p>I could not find a reliable Wikipedia/Wikidata entry for <strong>${escapeHtml(query)}</strong>.</p>`,
-            `<p>Try a shorter NLP term, for example: tokenization, POS tagging, dependency parsing, named entity recognition.</p>`
-          ].join("")
+          html: `<p>Free LLM is temporarily unavailable, so I used the glossary answer above.</p>`
         });
         return;
       }
 
-      termExplanationCache.set(cacheKey, explanation);
       addMessage("assistant", {
-        html: renderExplanationHtml(explanation)
+        html: [
+          `<p>I could not get a reliable free LLM response for <strong>${escapeHtml(query)}</strong>.</p>`,
+          `<p>Please try again, or ask with a simpler NLP term.</p>`
+        ].join("")
       });
     } catch (error) {
       addMessage("assistant", {
@@ -538,37 +542,50 @@
       `Question: ${questionText}`
     ].filter(Boolean).join("\n");
 
-    const url = `${FREE_LLM_BASE_URL}/${encodeURIComponent(prompt)}?model=${encodeURIComponent(FREE_LLM_MODEL)}`;
-    const response = await fetch(url, {
-      headers: {
-        Accept: "text/plain"
-      }
-    });
+    const requestCandidates = [{ model: "auto", url: `${FREE_LLM_BASE_URL}/${encodeURIComponent(prompt)}` }]
+      .concat(FREE_LLM_MODELS.map((model) => {
+        return {
+          model,
+          url: `${FREE_LLM_BASE_URL}/${encodeURIComponent(prompt)}?model=${encodeURIComponent(model)}`
+        };
+      }));
 
-    if (!response.ok) return "";
+    for (let i = 0; i < requestCandidates.length; i += 1) {
+      const candidate = requestCandidates[i];
+      const text = await fetchPlainTextWithTimeout(candidate.url, FREE_LLM_TIMEOUT_MS);
+      if (!text) continue;
 
-    const text = String(await response.text()).trim();
-    if (!text) return "";
-
-    // Remove occasional leading labels from model output.
-    return text.replace(/^answer\s*:\s*/i, "").slice(0, 1200).trim();
-  }
-
-  async function fetchQuestionExplanation(questionText, glossaryEntry) {
-    if (glossaryEntry) {
-      const direct = await fetchTermExplanation(glossaryEntry);
-      if (direct) return direct;
-    }
-
-    const candidates = extractQuestionCandidates(questionText, glossaryEntry);
-    for (let i = 0; i < candidates.length; i += 1) {
-      const wikipedia = await fetchWikipediaSummary(candidates[i]);
-      if (!wikipedia) continue;
-
-      return buildExplanationFromWikipedia(wikipedia);
+      return {
+        text: text.replace(/^answer\s*:\s*/i, "").slice(0, 1200).trim(),
+        model: candidate.model
+      };
     }
 
     return null;
+  }
+
+  async function fetchPlainTextWithTimeout(url, timeoutMs) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      controller.abort();
+    }, timeoutMs);
+
+    try {
+      const response = await fetch(url, {
+        headers: {
+          Accept: "text/plain"
+        },
+        signal: controller.signal
+      });
+      if (!response.ok) return "";
+
+      const text = String(await response.text()).trim();
+      return text;
+    } catch (error) {
+      return "";
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   function findBestEntryInQuestion(normalizedQuestion) {
@@ -600,221 +617,6 @@
     const escaped = escapeRegExp(needle).replace(/\s+/g, "\\s+");
     const regex = new RegExp(`(?:^|[^a-z0-9])${escaped}(?=$|[^a-z0-9])`, "i");
     return regex.test(haystack);
-  }
-
-  function extractQuestionCandidates(questionText, glossaryEntry) {
-    const raw = String(questionText || "").trim();
-    if (!raw) return [];
-
-    const normalized = normalizeForSearch(raw)
-      .replace(/[?!.:,;()\[\]{}"']/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-
-    const stripped = normalized
-      .replace(/^(what is|what are|define|definition of|explain|tell me about|can you explain|could you explain|please explain)\s+/i, "")
-      .replace(/\s+(in nlp|for nlp|in natural language processing)$/i, "")
-      .trim();
-
-    const candidates = [
-      raw,
-      normalized,
-      stripped,
-      stripped ? `${stripped} natural language processing` : ""
-    ].filter(Boolean);
-
-    if (glossaryEntry) {
-      const entryCandidates = buildEntrySearchCandidates(glossaryEntry);
-      for (let i = 0; i < entryCandidates.length; i += 1) {
-        candidates.push(entryCandidates[i]);
-      }
-    }
-
-    if (stripped) {
-      const words = stripped.split(" ").filter(Boolean);
-      if (words.length > 2) {
-        candidates.push(words.slice(0, 6).join(" "));
-      }
-    }
-
-    const deduped = [];
-    const seen = new Set();
-    candidates.forEach((candidate) => {
-      const key = normalizeForSearch(candidate);
-      if (!key || seen.has(key)) return;
-      seen.add(key);
-      deduped.push(candidate);
-    });
-
-    return deduped;
-  }
-
-  async function fetchTermExplanation(entry) {
-    const candidates = buildEntrySearchCandidates(entry);
-
-    for (let i = 0; i < candidates.length; i += 1) {
-      const candidate = candidates[i];
-      const wikipedia = await fetchWikipediaSummary(candidate);
-      if (!wikipedia) continue;
-
-      return buildExplanationFromWikipedia(wikipedia);
-    }
-
-    return null;
-  }
-
-  function buildEntrySearchCandidates(entry) {
-    const summaryKeywords = extractSummaryKeywords(entry.summary);
-
-    return [entry.term]
-      .concat([entry.title || entry.term])
-      .concat(entry.aliases || [])
-      .concat([`${entry.term} natural language processing`])
-      .concat([`${entry.term} computer programming`])
-      .concat([`${entry.title || entry.term} computer science`])
-      .concat(summaryKeywords.map((keyword) => `${entry.term} ${keyword}`));
-  }
-
-  function extractSummaryKeywords(summary) {
-    const stopwords = new Set([
-      "a", "an", "the", "is", "are", "that", "this", "it", "its", "for", "in", "of", "on", "to", "and", "or", "as", "by", "with", "from", "can", "you", "your", "used", "using", "into", "such"
-    ]);
-
-    const words = normalizeForSearch(summary)
-      .replace(/[^a-z0-9\s-]/g, " ")
-      .split(" ")
-      .map((word) => word.trim())
-      .filter((word) => word.length >= 4 && !stopwords.has(word));
-
-    const unique = [];
-    const seen = new Set();
-    for (let i = 0; i < words.length; i += 1) {
-      const word = words[i];
-      if (seen.has(word)) continue;
-      seen.add(word);
-      unique.push(word);
-      if (unique.length >= 4) break;
-    }
-
-    return unique;
-  }
-
-  async function fetchWikipediaSummary(query) {
-    const titleCandidates = await fetchWikipediaTitleCandidates(query);
-
-    for (let i = 0; i < titleCandidates.length; i += 1) {
-      const summary = await fetchWikipediaSummaryByTitle(titleCandidates[i]);
-      if (summary) return summary;
-    }
-
-    return null;
-  }
-
-  async function fetchWikipediaTitleCandidates(query) {
-    const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=5&format=json&origin=*`;
-    const searchResponse = await fetch(searchUrl);
-
-    const titles = [];
-    if (searchResponse.ok) {
-      const payload = await searchResponse.json();
-      const results = payload && payload.query && Array.isArray(payload.query.search)
-        ? payload.query.search
-        : [];
-
-      results.forEach((result) => {
-        if (!result || !result.title) return;
-        titles.push(String(result.title));
-      });
-    }
-
-    if (!titles.length) {
-      const fallbackUrl = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(query)}&limit=3&namespace=0&format=json&origin=*`;
-      const fallbackResponse = await fetch(fallbackUrl);
-      if (fallbackResponse.ok) {
-        const fallbackPayload = await fallbackResponse.json();
-        const fallbackTitles = Array.isArray(fallbackPayload) ? fallbackPayload[1] : [];
-        if (Array.isArray(fallbackTitles)) {
-          fallbackTitles.forEach((title) => {
-            if (!title) return;
-            titles.push(String(title));
-          });
-        }
-      }
-    }
-
-    titles.push(query);
-
-    const unique = [];
-    const seen = new Set();
-    titles.forEach((title) => {
-      const normalized = normalizeForSearch(title);
-      if (!normalized || seen.has(normalized)) return;
-      seen.add(normalized);
-      unique.push(title);
-    });
-
-    return unique.slice(0, 6);
-  }
-
-  async function fetchWikipediaSummaryByTitle(title) {
-    const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(String(title).replace(/\s+/g, "_"))}`;
-    const summaryResponse = await fetch(summaryUrl, {
-      headers: {
-        Accept: "application/json"
-      }
-    });
-    if (!summaryResponse.ok) return null;
-
-    const summaryPayload = await summaryResponse.json();
-    if (!summaryPayload || !summaryPayload.extract || summaryPayload.type === "disambiguation") {
-      return null;
-    }
-
-    return {
-      title: summaryPayload.title || title,
-      summary: summaryPayload.extract,
-      wikipediaUrl: summaryPayload.content_urls
-        && summaryPayload.content_urls.desktop
-        && summaryPayload.content_urls.desktop.page
-        ? summaryPayload.content_urls.desktop.page
-        : `https://en.wikipedia.org/wiki/${encodeURIComponent(String(title).replace(/\s+/g, "_"))}`,
-      wikidataId: summaryPayload.wikibase_item || ""
-    };
-  }
-
-  async function buildExplanationFromWikipedia(wikipedia) {
-    const wikidata = wikipedia.wikidataId
-      ? await fetchWikidataDescription(wikipedia.wikidataId)
-      : null;
-
-    return {
-      title: wikipedia.title,
-      summary: wikipedia.summary,
-      wikipediaUrl: wikipedia.wikipediaUrl,
-      wikidataId: wikipedia.wikidataId,
-      wikidataDescription: wikidata && wikidata.description ? wikidata.description : "",
-      wikidataUrl: wikipedia.wikidataId
-        ? `https://www.wikidata.org/wiki/${encodeURIComponent(wikipedia.wikidataId)}`
-        : ""
-    };
-  }
-
-  async function fetchWikidataDescription(wikidataId) {
-    const entityUrl = `https://www.wikidata.org/wiki/Special:EntityData/${encodeURIComponent(wikidataId)}.json`;
-    const response = await fetch(entityUrl);
-    if (!response.ok) return null;
-
-    const payload = await response.json();
-    if (!payload || !payload.entities || !payload.entities[wikidataId]) return null;
-
-    const entity = payload.entities[wikidataId];
-    const englishDescription = entity.descriptions && entity.descriptions.en
-      ? entity.descriptions.en.value
-      : "";
-
-    return {
-      description: englishDescription
-    };
   }
 
   function renderExplanationHtml(explanation) {
