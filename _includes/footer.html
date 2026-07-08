@@ -20,24 +20,16 @@
     </header>
 
     <div class="helper-chatbot__body">
-      <p class="helper-chatbot__intro">
-        Highlight one supported word from the page, then click "Explain selection".
-      </p>
-      <p class="helper-chatbot__hint">
-        Supported terms: variable, function, method, list, tuple, dictionary, tokenization, lemmatization, concordance, collocation, numpy, pytorch, loop, conditional.
-      </p>
-
-      <div class="helper-chatbot__chips" aria-label="Quick prompts">
-        <button class="helper-chatbot__chip" type="button" data-prompt="variable">variable</button>
-        <button class="helper-chatbot__chip" type="button" data-prompt="tokenization">tokenization</button>
-        <button class="helper-chatbot__chip" type="button" data-prompt="pytorch">pytorch</button>
+      <div class="helper-chatbot__terms-wrap">
+        <p class="helper-chatbot__label">Supported terms</p>
+        <pre class="helper-chatbot__terms" data-supported-terms></pre>
       </div>
 
       <div class="helper-chatbot__messages" role="log" aria-live="polite" aria-relevant="additions"></div>
     </div>
 
     <form class="helper-chatbot__form" autocomplete="off">
-      <textarea class="helper-chatbot__input" rows="2" placeholder="Or type one supported word exactly..." aria-label="Ask a question"></textarea>
+      <textarea class="helper-chatbot__input" rows="2" placeholder="Type one supported word exactly..." aria-label="Ask a question"></textarea>
       <div class="helper-chatbot__actions">
         <button class="helper-chatbot__secondary" type="button" data-action="selection">Explain selection</button>
         <button class="helper-chatbot__primary" type="submit">Send</button>
