@@ -111,6 +111,13 @@
   line-height: 1.45;
 }
 
+.helper-chatbot__hint {
+  margin: -0.35rem 0 0.9rem;
+  color: #475569;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
 .helper-chatbot__chips {
   flex-wrap: wrap;
   margin-bottom: 0.9rem;

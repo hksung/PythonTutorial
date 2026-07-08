@@ -21,21 +21,23 @@
 
     <div class="helper-chatbot__body">
       <p class="helper-chatbot__intro">
-        Ask about the current page, highlight a term and click "Explain selection", or choose one of the quick prompts below.
-        This helper does not use an external API.
+        Highlight one supported word from the page, then click "Explain selection".
+      </p>
+      <p class="helper-chatbot__hint">
+        Supported terms: variable, function, method, list, tuple, dictionary, tokenization, lemmatization, concordance, collocation, numpy, pytorch, loop, conditional.
       </p>
 
       <div class="helper-chatbot__chips" aria-label="Quick prompts">
-        <button class="helper-chatbot__chip" type="button" data-prompt="Explain the selected term in simple words.">Explain selection</button>
-        <button class="helper-chatbot__chip" type="button" data-prompt="What should I learn next on this page?">Next step</button>
-        <button class="helper-chatbot__chip" type="button" data-prompt="Summarize this section in 3 bullets.">Summarize section</button>
+        <button class="helper-chatbot__chip" type="button" data-prompt="variable">variable</button>
+        <button class="helper-chatbot__chip" type="button" data-prompt="tokenization">tokenization</button>
+        <button class="helper-chatbot__chip" type="button" data-prompt="pytorch">pytorch</button>
       </div>
 
       <div class="helper-chatbot__messages" role="log" aria-live="polite" aria-relevant="additions"></div>
     </div>
 
     <form class="helper-chatbot__form" autocomplete="off">
-      <textarea class="helper-chatbot__input" rows="2" placeholder="Ask about variables, loops, tokenization, concordance..." aria-label="Ask a question"></textarea>
+      <textarea class="helper-chatbot__input" rows="2" placeholder="Or type one supported word exactly..." aria-label="Ask a question"></textarea>
       <div class="helper-chatbot__actions">
         <button class="helper-chatbot__secondary" type="button" data-action="selection">Explain selection</button>
         <button class="helper-chatbot__primary" type="submit">Send</button>
@@ -43,23 +45,6 @@
     </form>
   </section>
 </div>
-
-<script>
-  window.PYTHON_TUTORIAL_HELPER = {
-  pages: [
-      { title: "Table of contents", url: "{{ '/0/' | relative_url }}" },
-      { title: "Getting started", url: "{{ '1.html' | relative_url }}" },
-      { title: "Values, variables, functions, methods", url: "{{ '2.html' | relative_url }}" },
-      { title: "Strings, lists, conditional statements, loops", url: "{{ '3.html' | relative_url }}" },
-      { title: "Tuples, dictionaries, functions, classes, files", url: "{{ '4.html' | relative_url }}" },
-      { title: "Tokenization, lemmatization, frequency calculation", url: "{{ '5.html' | relative_url }}" },
-      { title: "Concordance", url: "{{ '6.html' | relative_url }}" },
-      { title: "Collocation", url: "{{ '7.html' | relative_url }}" },
-      { title: "Numpy", url: "{{ 'numpy.html' | relative_url }}" },
-      { title: "PyTorch", url: "{{ 'pytorch.html' | relative_url }}" }
-    ]
-  };
-</script>
 
 <link rel="stylesheet" href="{{ 'assets/css/helper-chatbot.css' | relative_url }}">
 <script defer src="{{ 'assets/js/helper-chatbot.js' | relative_url }}"></script>
