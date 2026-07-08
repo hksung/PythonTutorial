@@ -497,10 +497,14 @@
     return regex.test(haystack);
   }
 
+  function renderInlineMarkdown(text) {
+    return escapeHtml(text).replace(/`([^`]+)`/g, '<code style="background: #f0f0f0; padding: 2px 4px; border-radius: 3px;">$1</code>');
+  }
+
   function renderExplanationHtml(explanation) {
     const html = [
       `<p><strong>${escapeHtml(explanation.title)}</strong></p>`,
-      `<p>${escapeHtml(explanation.summary)}</p>`
+      `<p>${renderInlineMarkdown(explanation.summary)}</p>`
     ];
 
     if (explanation.example) {
