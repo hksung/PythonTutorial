@@ -4,8 +4,6 @@ layout: default
 
 ### Python Tutorial
 
-This start-up tutorial introduces fundamental Python programming skills through hands-on work with text data. It starts with the basics of Python, then moves on to processing and analyzing linguistic corpora, and concludes with an introduction to key packages used in natural language processing.
-
 #### Basics
 - [Getting started](1.md)
 - [Values, variables, functions, methods](2.md)

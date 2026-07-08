@@ -7,6 +7,8 @@
   const closeButton = root.querySelector(".helper-chatbot__close");
   const messages = root.querySelector(".helper-chatbot__messages");
   const termsContainer = root.querySelector("[data-supported-terms]");
+  const questionForm = root.querySelector("[data-helper-chatbot-form]");
+  const questionInput = root.querySelector("[data-helper-chatbot-input]");
 
   if (!launcher || !panel || !closeButton || !messages) return;
 
@@ -315,6 +317,7 @@
 
   let panelOpen = false;
   let visibleTerms = [];
+  const termExplanationCache = new Map();
 
   const MAX_VISIBLE_TERMS = 12;
   const MAX_MESSAGES = 14;
@@ -330,6 +333,21 @@
       if (!button) return;
 
       explainTerm(button.getAttribute("data-term") || button.textContent || "");
+    });
+  }
+
+  if (questionForm && questionInput instanceof HTMLTextAreaElement) {
+    questionForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const question = questionInput.value.trim();
+      if (!question) return;
+
+      addMessage("user", question);
+      questionInput.value = "";
+
+      await answerQuestion(question);
+      questionInput.focus();
     });
   }
 
@@ -367,28 +385,305 @@
     launcher.setAttribute("aria-expanded", String(open));
   }
 
-  function explainTerm(rawTerm) {
+  async function explainTerm(rawTerm) {
     const term = normalizeTerm(rawTerm);
     const entry = findEntry(term);
 
     if (!entry) {
-      const supported = visibleTerms.length ? visibleTerms : glossary;
+      await answerQuestion(rawTerm);
+      return;
+    }
+
+    const cacheKey = normalizeTerm(entry.term);
+    const cached = termExplanationCache.get(cacheKey);
+    if (cached) {
       addMessage("assistant", {
-        html: [
-          `<p>I only explain these highlighted terms:</p>`,
-          `<pre class="helper-chatbot__terms">${escapeHtml(supported.map((item) => item.term).join("\n"))}</pre>`,
-          `<p>Try highlighting one of those words exactly.</p>`
-        ].join("")
+        html: renderExplanationHtml(cached)
       });
       return;
     }
 
     addMessage("assistant", {
-      html: [
-        `<p><strong>${escapeHtml(entry.title)}</strong></p>`,
-        `<p>${escapeHtml(entry.summary)}</p>`
-      ].join("")
+      html: `<p>Looking up <strong>${escapeHtml(entry.term)}</strong> from Wikipedia and Wikidata...</p>`
     });
+
+    try {
+      const explanation = await fetchTermExplanation(entry);
+      if (!explanation) {
+        addMessage("assistant", {
+          html: [
+            `<p>I could not find a reliable Wikipedia/Wikidata entry for <strong>${escapeHtml(entry.term)}</strong>.</p>`,
+            `<p>Please try another highlighted term.</p>`
+          ].join("")
+        });
+        return;
+      }
+
+      termExplanationCache.set(cacheKey, explanation);
+      addMessage("assistant", {
+        html: renderExplanationHtml(explanation)
+      });
+    } catch (error) {
+      addMessage("assistant", {
+        html: [
+          `<p>I ran into an API error while searching for <strong>${escapeHtml(entry.term)}</strong>.</p>`,
+          `<p>Please try again in a moment.</p>`
+        ].join("")
+      });
+    }
+  }
+
+  async function answerQuestion(questionText) {
+    const query = String(questionText || "").trim();
+    if (!query) return;
+
+    const cacheKey = `query:${normalizeTerm(query)}`;
+    const cached = termExplanationCache.get(cacheKey);
+    if (cached) {
+      addMessage("assistant", {
+        html: renderExplanationHtml(cached)
+      });
+      return;
+    }
+
+    addMessage("assistant", {
+      html: `<p>Looking up <strong>${escapeHtml(query)}</strong> from Wikipedia and Wikidata...</p>`
+    });
+
+    try {
+      const explanation = await fetchQuestionExplanation(query);
+      if (!explanation) {
+        addMessage("assistant", {
+          html: [
+            `<p>I could not find a reliable Wikipedia/Wikidata entry for <strong>${escapeHtml(query)}</strong>.</p>`,
+            `<p>Try a shorter NLP term, for example: tokenization, POS tagging, dependency parsing, named entity recognition.</p>`
+          ].join("")
+        });
+        return;
+      }
+
+      termExplanationCache.set(cacheKey, explanation);
+      addMessage("assistant", {
+        html: renderExplanationHtml(explanation)
+      });
+    } catch (error) {
+      addMessage("assistant", {
+        html: [
+          `<p>I ran into an API error while searching for <strong>${escapeHtml(query)}</strong>.</p>`,
+          `<p>Please try again in a moment.</p>`
+        ].join("")
+      });
+    }
+  }
+
+  async function fetchQuestionExplanation(questionText) {
+    const normalizedQuestion = normalizeForSearch(questionText);
+    const embeddedEntry = findBestEntryInQuestion(normalizedQuestion);
+    if (embeddedEntry) {
+      const direct = await fetchTermExplanation(embeddedEntry);
+      if (direct) return direct;
+    }
+
+    const candidates = extractQuestionCandidates(questionText);
+    for (let i = 0; i < candidates.length; i += 1) {
+      const wikipedia = await fetchWikipediaSummary(candidates[i]);
+      if (!wikipedia) continue;
+
+      const wikidata = wikipedia.wikidataId
+        ? await fetchWikidataDescription(wikipedia.wikidataId)
+        : null;
+
+      return {
+        title: wikipedia.title,
+        summary: wikipedia.summary,
+        wikipediaUrl: wikipedia.wikipediaUrl,
+        wikidataId: wikipedia.wikidataId,
+        wikidataDescription: wikidata && wikidata.description ? wikidata.description : "",
+        wikidataUrl: wikipedia.wikidataId
+          ? `https://www.wikidata.org/wiki/${encodeURIComponent(wikipedia.wikidataId)}`
+          : ""
+      };
+    }
+
+    return null;
+  }
+
+  function findBestEntryInQuestion(normalizedQuestion) {
+    if (!normalizedQuestion) return null;
+
+    let best = null;
+    let bestLength = 0;
+
+    glossary.forEach((entry) => {
+      const candidates = [entry.term].concat(entry.aliases || []);
+      candidates.forEach((candidate) => {
+        const normalizedCandidate = normalizeForSearch(candidate);
+        if (!normalizedCandidate) return;
+        if (!includesAsWholeTerm(normalizedQuestion, normalizedCandidate)) return;
+
+        if (normalizedCandidate.length > bestLength) {
+          best = entry;
+          bestLength = normalizedCandidate.length;
+        }
+      });
+    });
+
+    return best;
+  }
+
+  function includesAsWholeTerm(haystack, needle) {
+    if (!haystack || !needle) return false;
+
+    const escaped = escapeRegExp(needle).replace(/\s+/g, "\\s+");
+    const regex = new RegExp(`(?:^|[^a-z0-9])${escaped}(?=$|[^a-z0-9])`, "i");
+    return regex.test(haystack);
+  }
+
+  function extractQuestionCandidates(questionText) {
+    const raw = String(questionText || "").trim();
+    if (!raw) return [];
+
+    const normalized = normalizeForSearch(raw)
+      .replace(/[?!.:,;()\[\]{}"']/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    const stripped = normalized
+      .replace(/^(what is|what are|define|definition of|explain|tell me about|can you explain|could you explain|please explain)\s+/i, "")
+      .replace(/\s+(in nlp|for nlp|in natural language processing)$/i, "")
+      .trim();
+
+    const candidates = [
+      raw,
+      normalized,
+      stripped,
+      stripped ? `${stripped} natural language processing` : ""
+    ].filter(Boolean);
+
+    if (stripped) {
+      const words = stripped.split(" ").filter(Boolean);
+      if (words.length > 2) {
+        candidates.push(words.slice(0, 6).join(" "));
+      }
+    }
+
+    const deduped = [];
+    const seen = new Set();
+    candidates.forEach((candidate) => {
+      const key = normalizeForSearch(candidate);
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      deduped.push(candidate);
+    });
+
+    return deduped;
+  }
+
+  async function fetchTermExplanation(entry) {
+    const candidates = [entry.term]
+      .concat(entry.aliases || [])
+      .concat([`${entry.term} natural language processing`]);
+
+    for (let i = 0; i < candidates.length; i += 1) {
+      const candidate = candidates[i];
+      const wikipedia = await fetchWikipediaSummary(candidate);
+      if (!wikipedia) continue;
+
+      const wikidata = wikipedia.wikidataId
+        ? await fetchWikidataDescription(wikipedia.wikidataId)
+        : null;
+
+      return {
+        title: wikipedia.title,
+        summary: wikipedia.summary,
+        wikipediaUrl: wikipedia.wikipediaUrl,
+        wikidataId: wikipedia.wikidataId,
+        wikidataDescription: wikidata && wikidata.description ? wikidata.description : "",
+        wikidataUrl: wikipedia.wikidataId
+          ? `https://www.wikidata.org/wiki/${encodeURIComponent(wikipedia.wikidataId)}`
+          : ""
+      };
+    }
+
+    return null;
+  }
+
+  async function fetchWikipediaSummary(query) {
+    const searchUrl = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(query)}&limit=1&namespace=0&format=json&origin=*`;
+    const searchResponse = await fetch(searchUrl);
+    if (!searchResponse.ok) return null;
+
+    const searchPayload = await searchResponse.json();
+    const titles = Array.isArray(searchPayload) ? searchPayload[1] : [];
+    const title = Array.isArray(titles) ? titles[0] : "";
+    if (!title) return null;
+
+    const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.replace(/\s+/g, "_"))}`;
+    const summaryResponse = await fetch(summaryUrl, {
+      headers: {
+        Accept: "application/json"
+      }
+    });
+    if (!summaryResponse.ok) return null;
+
+    const summaryPayload = await summaryResponse.json();
+    if (!summaryPayload || !summaryPayload.extract || summaryPayload.type === "disambiguation") {
+      return null;
+    }
+
+    return {
+      title: summaryPayload.title || title,
+      summary: summaryPayload.extract,
+      wikipediaUrl: summaryPayload.content_urls
+        && summaryPayload.content_urls.desktop
+        && summaryPayload.content_urls.desktop.page
+        ? summaryPayload.content_urls.desktop.page
+        : `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/\s+/g, "_"))}`,
+      wikidataId: summaryPayload.wikibase_item || ""
+    };
+  }
+
+  async function fetchWikidataDescription(wikidataId) {
+    const entityUrl = `https://www.wikidata.org/wiki/Special:EntityData/${encodeURIComponent(wikidataId)}.json`;
+    const response = await fetch(entityUrl);
+    if (!response.ok) return null;
+
+    const payload = await response.json();
+    if (!payload || !payload.entities || !payload.entities[wikidataId]) return null;
+
+    const entity = payload.entities[wikidataId];
+    const englishDescription = entity.descriptions && entity.descriptions.en
+      ? entity.descriptions.en.value
+      : "";
+
+    return {
+      description: englishDescription
+    };
+  }
+
+  function renderExplanationHtml(explanation) {
+    const html = [
+      `<p><strong>${escapeHtml(explanation.title)}</strong></p>`,
+      `<p>${escapeHtml(explanation.summary)}</p>`
+    ];
+
+    if (explanation.wikidataDescription
+      && normalizeForSearch(explanation.wikidataDescription) !== normalizeForSearch(explanation.summary)) {
+      html.push(`<p><em>Wikidata:</em> ${escapeHtml(explanation.wikidataDescription)}</p>`);
+    }
+
+    const sources = [];
+    if (explanation.wikipediaUrl) {
+      sources.push(`<a href="${escapeHtml(explanation.wikipediaUrl)}" target="_blank" rel="noopener noreferrer">Wikipedia</a>`);
+    }
+    if (explanation.wikidataUrl) {
+      sources.push(`<a href="${escapeHtml(explanation.wikidataUrl)}" target="_blank" rel="noopener noreferrer">Wikidata</a>`);
+    }
+    if (sources.length) {
+      html.push(`<p>Source: ${sources.join(" | ")}</p>`);
+    }
+
+    return html.join("");
   }
 
   function findEntry(term) {
