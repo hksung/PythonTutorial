@@ -318,12 +318,14 @@
   let panelOpen = false;
   let visibleTerms = [];
   const termExplanationCache = new Map();
-  const FREE_LLM_BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
-  const FREE_LLM_MODELS = [
-    "deepseek/deepseek-r1:free",
-    "mistralai/mistral-7b-instruct:free",
-    "meta-llama/llama-2-7b-chat:free"
+  const HF_API_BASE_URL = "https://api-inference.huggingface.co/models";
+  const HF_MODELS = [
+    "mistralai/Mistral-7B-Instruct-v0.2",
+    "meta-llama/Llama-2-7b-chat-hf",
+    "HuggingFaceH4/zephyr-7b-alpha"
   ];
+  const HF_API_KEY_QUERY_PARAM = "hf_api_key";
+  const HF_API_KEY_STORAGE_KEY = "helper_chatbot_hf_api_key";
   const FREE_LLM_TIMEOUT_MS = 16000;
 
   const MAX_VISIBLE_TERMS = 12;
@@ -419,7 +421,7 @@
     });
 
     addMessage("assistant", {
-      html: `<p>Asking OpenRouter LLM for <strong>${escapeHtml(entry.term)}</strong>...</p>`
+      html: `<p>Asking Hugging Face model for <strong>${escapeHtml(entry.term)}</strong>...</p>`
     });
 
     try {
@@ -427,7 +429,7 @@
       if (!llmAnswer) {
         addMessage("assistant", {
           html: [
-            `<p>I could not reach a reliable OpenRouter response for <strong>${escapeHtml(entry.term)}</strong>.</p>`,
+            `<p>I could not reach a reliable Hugging Face response for <strong>${escapeHtml(entry.term)}</strong>.</p>`,
             `<p>I kept the glossary definition above as the primary answer.</p>`
           ].join("")
         });
@@ -447,7 +449,7 @@
       addMessage("assistant", {
         html: [
           renderExplanationHtml(explanation),
-          `<p><em>Source:</em> OpenRouter (${escapeHtml(llmAnswer.model)})</p>`
+          `<p><em>Source:</em> Hugging Face (${escapeHtml(llmAnswer.model)})</p>`
         ].join("")
       });
     } catch (error) {
@@ -474,7 +476,7 @@
     }
 
     addMessage("assistant", {
-      html: `<p>Checking glossary and asking OpenRouter LLM for <strong>${escapeHtml(query)}</strong>...</p>`
+      html: `<p>Checking glossary and asking Hugging Face model for <strong>${escapeHtml(query)}</strong>...</p>`
     });
 
     try {
@@ -503,7 +505,7 @@
         addMessage("assistant", {
           html: [
             renderExplanationHtml(llmExplanation),
-            `<p><em>Source:</em> OpenRouter (${escapeHtml(llmAnswer.model)})</p>`
+            `<p><em>Source:</em> Hugging Face (${escapeHtml(llmAnswer.model)})</p>`
           ].join("")
         });
         return;
@@ -511,14 +513,14 @@
 
       if (glossaryEntry) {
         addMessage("assistant", {
-          html: `<p>OpenRouter LLM is temporarily unavailable, so I used the glossary answer above.</p>`
+          html: `<p>Hugging Face model is temporarily unavailable, so I used the glossary answer above.</p>`
         });
         return;
       }
 
       addMessage("assistant", {
         html: [
-          `<p>I could not get a reliable OpenRouter LLM response for <strong>${escapeHtml(query)}</strong>.</p>`,
+          `<p>I could not get a reliable Hugging Face response for <strong>${escapeHtml(query)}</strong>.</p>`,
           `<p>Please try again, or ask with a simpler NLP term.</p>`
         ].join("")
       });
@@ -537,13 +539,14 @@
       buildReliablePrompt(questionText, glossaryEntry, false),
       buildReliablePrompt(questionText, glossaryEntry, true)
     ];
+    const hfApiKey = getHfApiKey();
 
     for (let p = 0; p < prompts.length; p += 1) {
       const prompt = prompts[p];
 
-      for (let i = 0; i < FREE_LLM_MODELS.length; i += 1) {
-        const model = FREE_LLM_MODELS[i];
-        const text = await fetchOpenRouterResponse(prompt, model, FREE_LLM_TIMEOUT_MS);
+      for (let i = 0; i < HF_MODELS.length; i += 1) {
+        const model = HF_MODELS[i];
+        const text = await fetchHuggingFaceResponse(prompt, model, hfApiKey, FREE_LLM_TIMEOUT_MS);
         if (!text) continue;
 
         const cleaned = text.replace(/^answer\s*:\s*/i, "").slice(0, 1200).trim();
@@ -702,28 +705,31 @@
     return titleMatch || termMatch || hasSummaryToken;
   }
 
-  async function fetchOpenRouterResponse(prompt, model, timeoutMs) {
+  async function fetchHuggingFaceResponse(prompt, model, apiKey, timeoutMs) {
     const controller = new AbortController();
     const timer = setTimeout(() => {
       controller.abort();
     }, timeoutMs);
 
     try {
-      const response = await fetch(FREE_LLM_BASE_URL, {
+      const url = `${HF_API_BASE_URL}/${encodeURIComponent(model)}`;
+      const headers = {
+        "Content-Type": "application/json"
+      };
+
+      if (apiKey) {
+        headers["Authorization"] = `Bearer ${apiKey}`;
+      }
+
+      const response = await fetch(url, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: headers,
         body: JSON.stringify({
-          model: model,
-          messages: [
-            {
-              role: "user",
-              content: prompt
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 300
+          inputs: prompt,
+          parameters: {
+            max_new_tokens: 300,
+            temperature: 0.7
+          }
         }),
         signal: controller.signal
       });
@@ -731,15 +737,45 @@
       if (!response.ok) return "";
 
       const payload = await response.json();
-      const choices = payload && payload.choices ? payload.choices : [];
-      const firstChoice = choices[0];
-      const message = firstChoice && firstChoice.message ? firstChoice.message : {};
-      const text = String(message.content || "").trim();
+      if (!Array.isArray(payload) || payload.length === 0) return "";
+
+      const firstResult = payload[0];
+      const text = String(firstResult && firstResult.generated_text ? firstResult.generated_text : "").trim();
       return text;
     } catch (error) {
       return "";
     } finally {
       clearTimeout(timer);
+    }
+  }
+
+  function getHfApiKey() {
+    const inlineKey = String(root.getAttribute("data-hf-api-key") || "").trim();
+    if (inlineKey) return inlineKey;
+
+    const queryKey = getHfKeyFromQuery();
+    if (queryKey) {
+      try {
+        localStorage.setItem(HF_API_KEY_STORAGE_KEY, queryKey);
+      } catch (error) {
+        // Ignore storage errors and continue with the in-memory key.
+      }
+      return queryKey;
+    }
+
+    try {
+      return String(localStorage.getItem(HF_API_KEY_STORAGE_KEY) || "").trim();
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function getHfKeyFromQuery() {
+    try {
+      const params = new URLSearchParams(window.location.search || "");
+      return String(params.get(HF_API_KEY_QUERY_PARAM) || "").trim();
+    } catch (error) {
+      return "";
     }
   }
 

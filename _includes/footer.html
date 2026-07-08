@@ -5,7 +5,7 @@
   </div>
 </footer>
 
-<div class="helper-chatbot" data-helper-chatbot>
+<div class="helper-chatbot" data-helper-chatbot data-hf-api-key="{{ site.hf_api_key | default: '' | escape }}">
   <button class="helper-chatbot__launcher" type="button" aria-label="Open tutorial helper" aria-expanded="false">
     Ask Helper
   </button>
@@ -40,5 +40,5 @@
   </section>
 </div>
 
-<link rel="stylesheet" href="{{ 'assets/css/helper-chatbot.css' | relative_url }}?v=17">
-<script defer src="{{ 'assets/js/helper-chatbot.js' | relative_url }}?v=17"></script>
+<link rel="stylesheet" href="{{ 'assets/css/helper-chatbot.css' | relative_url }}?v=18">
+<script defer src="{{ 'assets/js/helper-chatbot.js' | relative_url }}?v=18"></script>
