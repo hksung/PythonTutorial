@@ -352,24 +352,18 @@
     }
   });
 
-  // Delegate control clicks so open/close still works if listeners are affected by layout changes.
-  root.addEventListener("click", (event) => {
-    const target = event.target;
-    if (!(target instanceof Element)) return;
+  launcher.addEventListener("click", () => {
+    togglePanel(!panelOpen);
+  });
 
-    if (target.closest(".helper-chatbot__close")) {
-      togglePanel(false);
-      return;
-    }
-
-    if (target.closest(".helper-chatbot__launcher")) {
-      togglePanel(!panelOpen);
-    }
+  closeButton.addEventListener("click", () => {
+    togglePanel(false);
   });
 
   function togglePanel(open) {
     panelOpen = open;
     panel.hidden = !open;
+    panel.setAttribute("aria-hidden", String(!open));
     launcher.setAttribute("aria-expanded", String(open));
   }
 
