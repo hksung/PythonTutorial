@@ -8,40 +8,42 @@
   const messages = root.querySelector(".helper-chatbot__messages");
   const termsContainer = root.querySelector("[data-supported-terms]");
 
+  if (!launcher || !panel || !closeButton || !messages) return;
+
   const glossary = [
     {
       term: "python",
-      aliases: ["파이썬"],
+      aliases: [],
       title: "Python",
       summary: "Python is a high-level programming language used for general programming, data work, and NLP."
     },
     {
       term: "interpreter",
-      aliases: ["interpretation", "인터프리터"],
+      aliases: ["interpretation"],
       title: "Interpreter",
       summary: "An interpreter runs Python code step by step instead of compiling the whole program ahead of time."
     },
     {
       term: "script",
-      aliases: ["scripts", "스크립트"],
+      aliases: ["scripts"],
       title: "Script",
       summary: "A script is a file containing Python code that you run as a program."
     },
     {
       term: "ide",
-      aliases: ["vscode", "pycharm", "editor", "에디터"],
+      aliases: ["vscode", "pycharm", "editor"],
       title: "IDE",
       summary: "An IDE is a development environment that helps you edit, run, and debug code."
     },
     {
       term: "notebook",
-      aliases: ["colab", "jupyter", "노트북"],
+      aliases: ["colab", "jupyter"],
       title: "Notebook",
       summary: "A notebook is an interactive coding environment where you run code in cells."
     },
     {
       term: "environment",
-      aliases: ["env", "virtual environment", "가상환경"],
+      aliases: ["env", "virtual environment"],
       title: "Environment",
       summary: "An environment is an isolated setup for Python and packages so projects do not conflict."
     },
@@ -65,163 +67,163 @@
     },
     {
       term: "string",
-      aliases: ["strings", "문자열"],
+      aliases: ["strings"],
       title: "String",
       summary: "A string is text enclosed in quotes."
     },
     {
       term: "integer",
-      aliases: ["integers", "int", "정수"],
+      aliases: ["integers", "int"],
       title: "Integer",
       summary: "An integer is a whole number with no decimal part."
     },
     {
       term: "float",
-      aliases: ["floats", "실수"],
+      aliases: ["floats"],
       title: "Float",
       summary: "A float is a number with a decimal point."
     },
     {
       term: "boolean",
-      aliases: ["bool", "booleans", "true", "false", "불리언"],
+      aliases: ["bool", "booleans", "true", "false"],
       title: "Boolean",
       summary: "A boolean is a truth value: `True` or `False`."
     },
     {
       term: "none",
-      aliases: ["null", "없음"],
+      aliases: ["null"],
       title: "None",
       summary: "None represents the absence of a value."
     },
     {
       term: "assignment",
-      aliases: ["reassignment", "대입"],
+      aliases: ["reassignment"],
       title: "Assignment",
       summary: "Assignment stores a value in a variable name."
     },
     {
       term: "indexing",
-      aliases: ["index", "indices", "인덱싱"],
+      aliases: ["index", "indices"],
       title: "Indexing",
       summary: "Indexing retrieves an item from a sequence by position."
     },
     {
       term: "slicing",
-      aliases: ["slice", "슬라이싱"],
+      aliases: ["slice"],
       title: "Slicing",
       summary: "Slicing selects a range of items from a sequence."
     },
     {
       term: "concatenation",
-      aliases: ["concat", "연결"],
+      aliases: ["concat"],
       title: "Concatenation",
       summary: "Concatenation joins values together, such as strings or lists."
     },
     {
       term: "membership",
-      aliases: ["in", "멤버십"],
+      aliases: ["in"],
       title: "Membership",
       summary: "Membership checks whether a value exists inside a string, list, or other container."
     },
     {
       term: "mutability",
-      aliases: ["mutable", "immutability", "immutable", "가변성"],
+      aliases: ["mutable", "immutability", "immutable"],
       title: "Mutability",
       summary: "Mutability describes whether an object can be changed after creation."
     },
     {
       term: "variable",
-      aliases: ["variables", "변수"],
+      aliases: ["variables"],
       title: "Variable",
       summary: "A variable stores a value under a name. You can reuse that name later instead of rewriting the value."
     },
     {
       term: "function",
-      aliases: ["functions", "함수"],
+      aliases: ["functions"],
       title: "Function",
       summary: "A function is a reusable block of code that can take inputs and return a result."
     },
     {
       term: "method",
-      aliases: ["methods", "메서드"],
+      aliases: ["methods"],
       title: "Method",
       summary: "A method is a function attached to an object, such as `lower()` or `split()` on a string."
     },
     {
       term: "list",
-      aliases: ["lists", "리스트"],
+      aliases: ["lists"],
       title: "List",
       summary: "A list is an ordered and mutable collection. You can index it, slice it, append to it, and replace items."
     },
     {
       term: "tuple",
-      aliases: ["tuples", "튜플"],
+      aliases: ["tuples"],
       title: "Tuple",
       summary: "A tuple is like a list, but immutable. Its contents cannot be changed after creation."
     },
     {
       term: "dictionary",
-      aliases: ["dictionaries", "dict", "딕셔너리"],
+      aliases: ["dictionaries", "dict"],
       title: "Dictionary",
       summary: "A dictionary stores key-value pairs and lets you look up values by key."
     },
     {
       term: "key",
-      aliases: ["keys", "키"],
+      aliases: ["keys"],
       title: "Key",
       summary: "A key is the lookup label used in a dictionary."
     },
     {
       term: "value",
-      aliases: ["values", "값"],
+      aliases: ["values"],
       title: "Value",
       summary: "A value is the data stored or returned by an expression, variable, or dictionary entry."
     },
     {
       term: "tokenization",
-      aliases: ["tokenize", "tokens", "토큰화"],
+      aliases: ["tokenize", "tokens"],
       title: "Tokenization",
       summary: "Tokenization splits raw text into smaller units such as words and punctuation."
     },
     {
       term: "lemmatization",
-      aliases: ["lemmatize", "lemma", "표제어"],
+      aliases: ["lemmatize", "lemma"],
       title: "Lemmatization",
       summary: "Lemmatization converts a word to its base or dictionary form."
     },
     {
       term: "concordance",
-      aliases: ["concord", "kwic", "코퍼스"],
+      aliases: ["concord", "kwic"],
       title: "Concordance",
       summary: "Concordance shows a target word with its surrounding context so you can inspect real usage."
     },
     {
       term: "corpus",
-      aliases: ["corpora", "corpus", "코퍼스"],
+      aliases: ["corpora", "corpus"],
       title: "Corpus",
       summary: "A corpus is a collection of texts used for analysis."
     },
     {
       term: "collocation",
-      aliases: ["collocations", "ngram", "n-gram", "결합"],
+      aliases: ["collocations", "ngram", "n-gram"],
       title: "Collocation",
       summary: "Collocation analysis looks for words that occur together more often than expected."
     },
     {
       term: "frequency",
-      aliases: ["count", "counts", "빈도"],
+      aliases: ["count", "counts"],
       title: "Frequency",
       summary: "Frequency tells you how often a word or item appears."
     },
     {
       term: "regex",
-      aliases: ["regular expression", "regular expressions", "정규식"],
+      aliases: ["regular expression", "regular expressions"],
       title: "Regex",
       summary: "Regex is a pattern language for matching and searching text."
     },
     {
       term: "pattern",
-      aliases: ["patterns", "패턴"],
+      aliases: ["patterns"],
       title: "Pattern",
       summary: "A pattern is a rule used to match a class of strings or structures."
     },
@@ -251,7 +253,7 @@
     },
     {
       term: "numpy",
-      aliases: ["array", "matrix", "vector", "넘파이"],
+      aliases: ["array", "matrix", "vector"],
       title: "NumPy",
       summary: "NumPy provides fast arrays and matrix operations for numerical computation."
     },
@@ -263,13 +265,13 @@
     },
     {
       term: "pytorch",
-      aliases: ["tensor", "tensors", "파이토치"],
+      aliases: ["tensor", "tensors"],
       title: "PyTorch",
       summary: "PyTorch is a deep learning library built around tensors and dynamic computation graphs."
     },
     {
       term: "tensor",
-      aliases: ["tensors", "텐서"],
+      aliases: ["tensors"],
       title: "Tensor",
       summary: "A tensor is a multi-dimensional array used in machine learning."
     },
@@ -281,13 +283,13 @@
     },
     {
       term: "batch",
-      aliases: ["batches", "배치"],
+      aliases: ["batches"],
       title: "Batch",
       summary: "A batch is a group of examples processed together."
     },
     {
       term: "sequence",
-      aliases: ["sequential", "sequences", "시퀀스"],
+      aliases: ["sequential", "sequences"],
       title: "Sequence",
       summary: "A sequence is ordered data where item position matters."
     },
@@ -299,13 +301,13 @@
     },
     {
       term: "loop",
-      aliases: ["loops", "for", "while", "반복"],
+      aliases: ["loops", "for", "while"],
       title: "Loop",
       summary: "A loop repeats a block of code across a sequence or until a condition changes."
     },
     {
       term: "conditional",
-      aliases: ["condition", "if", "else", "elif", "조건"],
+      aliases: ["condition", "if", "else", "elif"],
       title: "Conditional",
       summary: "A conditional lets code branch based on whether an expression is true or false."
     }
@@ -313,6 +315,7 @@
 
   let panelOpen = false;
   let visibleTerms = [];
+  const dismissedTerms = new Set();
 
   const MAX_VISIBLE_TERMS = 12;
   const MAX_MESSAGES = 14;
@@ -323,6 +326,18 @@
     termsContainer.addEventListener("click", (event) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
+
+      const removeButton = target.closest("[data-remove-term]");
+      if (removeButton) {
+        const termToRemove = removeButton.getAttribute("data-remove-term") || "";
+        const normalizedRemove = normalizeTerm(termToRemove);
+        if (normalizedRemove) {
+          dismissedTerms.add(normalizedRemove);
+          visibleTerms = visibleTerms.filter((entry) => normalizeTerm(entry.term) !== normalizedRemove);
+          renderTerms();
+        }
+        return;
+      }
 
       const button = target.closest("[data-term]");
       if (!button) return;
@@ -337,8 +352,20 @@
     }
   });
 
-  launcher.addEventListener("click", () => togglePanel(true));
-  closeButton.addEventListener("click", () => togglePanel(false));
+  // Delegate control clicks so open/close still works if listeners are affected by layout changes.
+  root.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+
+    if (target.closest(".helper-chatbot__close")) {
+      togglePanel(false);
+      return;
+    }
+
+    if (target.closest(".helper-chatbot__launcher")) {
+      togglePanel(!panelOpen);
+    }
+  });
 
   function togglePanel(open) {
     panelOpen = open;
@@ -388,8 +415,8 @@
 
   function addMessage(role, content) {
     const message = typeof content === "string"
-      ? { title: role === "assistant" ? "Helper" : "You", html: `<p>${escapeHtml(content)}</p>` }
-      : { title: content.title || (role === "assistant" ? "Helper" : "You"), html: content.html || "" };
+      ? { title: role === "assistant" ? "Term" : "You", html: `<p>${escapeHtml(content)}</p>` }
+      : { title: content.title || (role === "assistant" ? "Term" : "You"), html: content.html || "" };
 
     const node = document.createElement("article");
     node.className = `helper-chatbot__message helper-chatbot__message--${role}`;
@@ -408,15 +435,41 @@
 
     visibleTerms = getRelevantTerms();
 
+    renderTerms();
+  }
+
+  function renderTerms() {
+    if (!termsContainer) return;
+
     termsContainer.innerHTML = "";
     visibleTerms.forEach((entry) => {
+      const row = document.createElement("div");
+      row.className = "helper-chatbot__term-item";
+
       const button = document.createElement("button");
       button.type = "button";
       button.className = "helper-chatbot__term";
       button.setAttribute("data-term", entry.term);
       button.textContent = entry.term;
-      termsContainer.appendChild(button);
+
+      const removeButton = document.createElement("button");
+      removeButton.type = "button";
+      removeButton.className = "helper-chatbot__term-remove";
+      removeButton.setAttribute("data-remove-term", entry.term);
+      removeButton.setAttribute("aria-label", `Remove ${entry.term}`);
+      removeButton.textContent = "x";
+
+      row.appendChild(button);
+      row.appendChild(removeButton);
+      termsContainer.appendChild(row);
     });
+
+    if (!visibleTerms.length) {
+      const empty = document.createElement("p");
+      empty.className = "helper-chatbot__terms-empty";
+      empty.textContent = "All terms hidden. Reload the page to restore the list.";
+      termsContainer.appendChild(empty);
+    }
   }
 
   function getRelevantTerms() {
@@ -444,6 +497,7 @@
     for (let i = 0; i < scored.length; i += 1) {
       const item = scored[i];
       if (seen.has(item.entry.term)) continue;
+      if (dismissedTerms.has(normalizeTerm(item.entry.term))) continue;
       seen.add(item.entry.term);
       selected.push(item.entry);
       if (selected.length >= MAX_VISIBLE_TERMS) break;
@@ -451,7 +505,9 @@
 
     if (selected.length) return selected;
 
-    return glossary.slice(0, MAX_VISIBLE_TERMS);
+    return glossary
+      .filter((entry) => !dismissedTerms.has(normalizeTerm(entry.term)))
+      .slice(0, MAX_VISIBLE_TERMS);
   }
 
   function getPageText() {
