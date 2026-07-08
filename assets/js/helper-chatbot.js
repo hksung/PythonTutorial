@@ -320,7 +320,7 @@
   const termExplanationCache = new Map();
   const FREE_LLM_BASE_URL = "https://text.pollinations.ai";
   const FREE_LLM_MODELS = ["mistral", "qwen", "llama"];
-  const FREE_LLM_TIMEOUT_MS = 12000;
+  const FREE_LLM_TIMEOUT_MS = 16000;
 
   const MAX_VISIBLE_TERMS = 12;
   const MAX_MESSAGES = 14;
@@ -529,48 +529,63 @@
   }
 
   async function fetchFreeLlmAnswer(questionText, glossaryEntry) {
-    const prompt = buildReliablePrompt(questionText, glossaryEntry);
+    const prompts = [
+      buildReliablePrompt(questionText, glossaryEntry, false),
+      buildReliablePrompt(questionText, glossaryEntry, true)
+    ];
 
-    const requestCandidates = [{ model: "auto", url: `${FREE_LLM_BASE_URL}/${encodeURIComponent(prompt)}` }]
-      .concat(FREE_LLM_MODELS.map((model) => {
+    for (let p = 0; p < prompts.length; p += 1) {
+      const prompt = prompts[p];
+      const requestCandidates = [{ model: "auto", url: `${FREE_LLM_BASE_URL}/${encodeURIComponent(prompt)}` }]
+        .concat(FREE_LLM_MODELS.map((model) => {
+          return {
+            model,
+            url: `${FREE_LLM_BASE_URL}/${encodeURIComponent(prompt)}?model=${encodeURIComponent(model)}`
+          };
+        }));
+
+      for (let i = 0; i < requestCandidates.length; i += 1) {
+        const candidate = requestCandidates[i];
+        const text = await fetchPlainTextWithTimeout(candidate.url, FREE_LLM_TIMEOUT_MS);
+        if (!text) continue;
+
+        const cleaned = text.replace(/^answer\s*:\s*/i, "").slice(0, 1200).trim();
+        if (!isReliableLlmAnswer(cleaned, glossaryEntry)) continue;
+
         return {
-          model,
-          url: `${FREE_LLM_BASE_URL}/${encodeURIComponent(prompt)}?model=${encodeURIComponent(model)}`
+          text: cleaned,
+          model: candidate.model
         };
-      }));
-
-    for (let i = 0; i < requestCandidates.length; i += 1) {
-      const candidate = requestCandidates[i];
-      const text = await fetchPlainTextWithTimeout(candidate.url, FREE_LLM_TIMEOUT_MS);
-      if (!text) continue;
-
-      const cleaned = text.replace(/^answer\s*:\s*/i, "").slice(0, 1200).trim();
-      if (!isReliableLlmAnswer(cleaned, glossaryEntry)) continue;
-
-      return {
-        text: cleaned,
-        model: candidate.model
-      };
+      }
     }
 
     return null;
   }
 
-  function buildReliablePrompt(questionText, glossaryEntry) {
+  function buildReliablePrompt(questionText, glossaryEntry, retryMode) {
     const context = glossaryEntry
       ? `Glossary hint (authoritative): ${glossaryEntry.title} - ${glossaryEntry.summary}`
       : "";
 
+    const retryInstruction = retryMode
+      ? "Retry mode: rewrite the answer to satisfy all format rules exactly, especially the Example sentence."
+      : "";
+
     return [
       "You are a Python and NLP tutoring assistant for beginners.",
+      "Assume every question is asked in an NLP learning context.",
+      "Prioritize NLP usage and examples over general software examples.",
       "Output language: English only.",
       "Return exactly 2-3 short sentences.",
       "Sentence 1: give a clear beginner-friendly definition.",
-      "Sentence 2: give one concrete Python or NLP example.",
-      "If relevant, sentence 3: contrast with a nearby concept.",
+      "Sentence 2: MUST start with 'Example:' and give one concrete NLP beginner example (text, tokens, corpus, frequency, or labels).",
+      "If relevant, sentence 3: contrast with a nearby concept in plain words.",
+      "Use concrete values or mini snippets in the example when possible.",
+      "Do not switch to unrelated domains such as finance, medicine, or game development.",
       "Do not use bullet points, markdown tables, or code blocks.",
       "If uncertain, say what is uncertain instead of guessing.",
       "When a glossary hint is provided, stay consistent with it.",
+      retryInstruction,
       context,
       `Question: ${questionText}`
     ].filter(Boolean).join("\n");
@@ -585,6 +600,17 @@
 
     const uncertainOnly = /^(i\s*(am|'m)?\s*not\s*sure|uncertain|i\s*cannot\s*answer)/i;
     if (uncertainOnly.test(text.trim())) return false;
+
+    const hasConcreteExample = /\bexample\s*:/i.test(text)
+      || /\bfor example\b/i.test(text)
+      || /\bfor instance\b/i.test(text)
+      || /\bsuch as\b/i.test(text)
+      || /`[^`]+`/.test(text)
+      || /\b(e\.g\.|eg\.)\b/i.test(text)
+      || /\b[a-z_]+\([^)]*\)/i.test(text)
+      || /\[[^\]]+\]/.test(text)
+      || /\{[^}]+\}/.test(text);
+    if (!hasConcreteExample) return false;
 
     if (!glossaryEntry) return true;
 
