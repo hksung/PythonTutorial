@@ -5,10 +5,7 @@
   const launcher = root.querySelector(".helper-chatbot__launcher");
   const panel = root.querySelector(".helper-chatbot__panel");
   const closeButton = root.querySelector(".helper-chatbot__close");
-  const form = root.querySelector(".helper-chatbot__form");
-  const input = root.querySelector(".helper-chatbot__input");
   const messages = root.querySelector(".helper-chatbot__messages");
-  const selectionButton = root.querySelector('[data-action="selection"]');
   const supportedTermsBlock = root.querySelector("[data-supported-terms]");
 
   const glossary = [
@@ -314,21 +311,20 @@
     }
   ];
 
-  let lastSelection = "";
   let panelOpen = false;
 
   if (supportedTermsBlock) {
-    supportedTermsBlock.textContent = glossary.map((entry) => entry.term).join("\n");
+    supportedTermsBlock.replaceChildren(
+      ...glossary.map((entry) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "helper-chatbot__term";
+        button.textContent = entry.term;
+        button.addEventListener("click", () => explainTerm(entry.term));
+        return button;
+      })
+    );
   }
-
-  launcher.addEventListener("click", () => togglePanel(true));
-  closeButton.addEventListener("click", () => togglePanel(false));
-  selectionButton.addEventListener("click", explainSelection);
-
-  document.addEventListener("selectionchange", () => {
-    const text = currentSelectionText();
-    if (text) lastSelection = text;
-  });
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && panelOpen) {
@@ -336,31 +332,17 @@
     }
   });
 
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const text = input.value.trim();
-    if (!text) return;
-    input.value = "";
-    addMessage("user", text);
-    explainTerm(text);
+  launcher.addEventListener("click", () => togglePanel(true));
+  closeButton.addEventListener("click", () => togglePanel(false));
+
+  addMessage("assistant", {
+    html: "<p>Click a supported term below to see its explanation.</p>"
   });
 
   function togglePanel(open) {
     panelOpen = open;
     panel.hidden = !open;
     launcher.setAttribute("aria-expanded", String(open));
-    if (open) input.focus();
-  }
-
-  function explainSelection() {
-    const selection = currentSelectionText() || lastSelection;
-    if (!selection) {
-      addMessage("assistant", "Select one supported term first.");
-      return;
-    }
-
-    addMessage("user", selection);
-    explainTerm(selection);
   }
 
   function explainTerm(rawTerm) {
@@ -368,18 +350,22 @@
     const entry = findEntry(term);
 
     if (!entry) {
-      addMessage("assistant", [
-        `<p>I only explain these highlighted terms:</p>`,
-        `<pre class="helper-chatbot__terms">${escapeHtml(glossary.map((item) => item.term).join("\n"))}</pre>`,
-        `<p>Try highlighting one of those words exactly.</p>`
-      ].join(""));
+      addMessage("assistant", {
+        html: [
+          `<p>I only explain these highlighted terms:</p>`,
+          `<pre class="helper-chatbot__terms">${escapeHtml(glossary.map((item) => item.term).join("\n"))}</pre>`,
+          `<p>Try highlighting one of those words exactly.</p>`
+        ].join("")
+      });
       return;
     }
 
-    addMessage("assistant", [
-      `<p><strong>${escapeHtml(entry.title)}</strong></p>`,
-      `<p>${escapeHtml(entry.summary)}</p>`
-    ].join(""));
+    addMessage("assistant", {
+      html: [
+        `<p><strong>${escapeHtml(entry.title)}</strong></p>`,
+        `<p>${escapeHtml(entry.summary)}</p>`
+      ].join("")
+    });
   }
 
   function findEntry(term) {
@@ -389,12 +375,6 @@
     return glossary.find((entry) => {
       return entry.aliases.some((alias) => normalizeTerm(alias) === term);
     }) || null;
-  }
-
-  function currentSelectionText() {
-    const selection = window.getSelection();
-    const text = selection ? selection.toString().trim() : "";
-    return text ? text : "";
   }
 
   function normalizeTerm(value) {
