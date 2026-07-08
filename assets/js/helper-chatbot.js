@@ -504,7 +504,7 @@
     ];
 
     if (explanation.example) {
-      const exampleText = String(explanation.example);
+      const exampleText = String(explanation.example).replace(/\\n/g, "\n");
 
       if (exampleText.includes("\n")) {
         html.push(`<p><em>Example:</em></p>`);
