@@ -315,7 +315,6 @@
 
   let panelOpen = false;
   let visibleTerms = [];
-  const dismissedTerms = new Set();
 
   const MAX_VISIBLE_TERMS = 12;
   const MAX_MESSAGES = 14;
@@ -327,24 +326,25 @@
       const target = event.target;
       if (!(target instanceof Element)) return;
 
-      const removeButton = target.closest("[data-remove-term]");
-      if (removeButton) {
-        const termToRemove = removeButton.getAttribute("data-remove-term") || "";
-        const normalizedRemove = normalizeTerm(termToRemove);
-        if (normalizedRemove) {
-          dismissedTerms.add(normalizedRemove);
-          visibleTerms = visibleTerms.filter((entry) => normalizeTerm(entry.term) !== normalizedRemove);
-          renderTerms();
-        }
-        return;
-      }
-
       const button = target.closest("[data-term]");
       if (!button) return;
 
       explainTerm(button.getAttribute("data-term") || button.textContent || "");
     });
   }
+
+  messages.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+
+    const removeButton = target.closest("[data-remove-message]");
+    if (!removeButton) return;
+
+    const message = removeButton.closest(".helper-chatbot__message");
+    if (message && message.parentNode === messages) {
+      messages.removeChild(message);
+    }
+  });
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && panelOpen) {
@@ -414,7 +414,10 @@
 
     const node = document.createElement("article");
     node.className = `helper-chatbot__message helper-chatbot__message--${role}`;
-    node.innerHTML = `<strong>${escapeHtml(message.title)}</strong>${message.html}`;
+    const dismissButton = role === "assistant"
+      ? `<button class="helper-chatbot__message-close" type="button" aria-label="Dismiss this explanation" data-remove-message>x</button>`
+      : "";
+    node.innerHTML = `<strong>${escapeHtml(message.title)}</strong>${message.html}${dismissButton}`;
     messages.appendChild(node);
 
     while (messages.children.length > MAX_MESSAGES) {
@@ -437,25 +440,13 @@
 
     termsContainer.innerHTML = "";
     visibleTerms.forEach((entry) => {
-      const row = document.createElement("div");
-      row.className = "helper-chatbot__term-item";
-
       const button = document.createElement("button");
       button.type = "button";
       button.className = "helper-chatbot__term";
       button.setAttribute("data-term", entry.term);
       button.textContent = entry.term;
 
-      const removeButton = document.createElement("button");
-      removeButton.type = "button";
-      removeButton.className = "helper-chatbot__term-remove";
-      removeButton.setAttribute("data-remove-term", entry.term);
-      removeButton.setAttribute("aria-label", `Remove ${entry.term}`);
-      removeButton.textContent = "x";
-
-      row.appendChild(button);
-      row.appendChild(removeButton);
-      termsContainer.appendChild(row);
+      termsContainer.appendChild(button);
     });
 
     if (!visibleTerms.length) {
@@ -491,7 +482,6 @@
     for (let i = 0; i < scored.length; i += 1) {
       const item = scored[i];
       if (seen.has(item.entry.term)) continue;
-      if (dismissedTerms.has(normalizeTerm(item.entry.term))) continue;
       seen.add(item.entry.term);
       selected.push(item.entry);
       if (selected.length >= MAX_VISIBLE_TERMS) break;
@@ -499,9 +489,7 @@
 
     if (selected.length) return selected;
 
-    return glossary
-      .filter((entry) => !dismissedTerms.has(normalizeTerm(entry.term)))
-      .slice(0, MAX_VISIBLE_TERMS);
+    return glossary.slice(0, MAX_VISIBLE_TERMS);
   }
 
   function getPageText() {
