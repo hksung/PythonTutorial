@@ -318,6 +318,8 @@
   let panelOpen = false;
   let visibleTerms = [];
   const termExplanationCache = new Map();
+  const FREE_LLM_BASE_URL = "https://text.pollinations.ai";
+  const FREE_LLM_MODEL = "mistral";
 
   const MAX_VISIBLE_TERMS = 12;
   const MAX_MESSAGES = 14;
@@ -403,6 +405,14 @@
       return;
     }
 
+    // Show local glossary definition first, then enrich from wiki sources.
+    addMessage("assistant", {
+      html: [
+        `<p><strong>${escapeHtml(entry.title)}</strong> (Glossary)</p>`,
+        `<p>${escapeHtml(entry.summary)}</p>`
+      ].join("")
+    });
+
     addMessage("assistant", {
       html: `<p>Looking up <strong>${escapeHtml(entry.term)}</strong> from Wikipedia and Wikidata...</p>`
     });
@@ -413,7 +423,7 @@
         addMessage("assistant", {
           html: [
             `<p>I could not find a reliable Wikipedia/Wikidata entry for <strong>${escapeHtml(entry.term)}</strong>.</p>`,
-            `<p>Please try another highlighted term.</p>`
+            `<p>I kept the glossary definition above as the primary answer.</p>`
           ].join("")
         });
         return;
@@ -447,12 +457,50 @@
     }
 
     addMessage("assistant", {
-      html: `<p>Looking up <strong>${escapeHtml(query)}</strong> from Wikipedia and Wikidata...</p>`
+      html: `<p>Checking glossary and asking a free open LLM for <strong>${escapeHtml(query)}</strong>...</p>`
     });
 
     try {
-      const explanation = await fetchQuestionExplanation(query);
+      const glossaryEntry = findBestEntryInQuestion(normalizeForSearch(query));
+      if (glossaryEntry) {
+        addMessage("assistant", {
+          html: [
+            `<p><strong>${escapeHtml(glossaryEntry.title)}</strong> (Glossary match)</p>`,
+            `<p>${escapeHtml(glossaryEntry.summary)}</p>`
+          ].join("")
+        });
+      }
+
+      const llmAnswer = await fetchFreeLlmAnswer(query, glossaryEntry);
+      if (llmAnswer) {
+        const llmExplanation = {
+          title: glossaryEntry ? `${glossaryEntry.title} (LLM)` : "LLM Answer",
+          summary: llmAnswer,
+          wikipediaUrl: "",
+          wikidataId: "",
+          wikidataDescription: "",
+          wikidataUrl: ""
+        };
+
+        termExplanationCache.set(cacheKey, llmExplanation);
+        addMessage("assistant", {
+          html: [
+            renderExplanationHtml(llmExplanation),
+            `<p><em>Source:</em> Free open LLM (${escapeHtml(FREE_LLM_MODEL)})</p>`
+          ].join("")
+        });
+        return;
+      }
+
+      const explanation = await fetchQuestionExplanation(query, glossaryEntry);
       if (!explanation) {
+        if (glossaryEntry) {
+          addMessage("assistant", {
+            html: `<p>I could not verify a better Wikipedia/Wikidata page, so I used the glossary answer above.</p>`
+          });
+          return;
+        }
+
         addMessage("assistant", {
           html: [
             `<p>I could not find a reliable Wikipedia/Wikidata entry for <strong>${escapeHtml(query)}</strong>.</p>`,
@@ -476,33 +524,48 @@
     }
   }
 
-  async function fetchQuestionExplanation(questionText) {
-    const normalizedQuestion = normalizeForSearch(questionText);
-    const embeddedEntry = findBestEntryInQuestion(normalizedQuestion);
-    if (embeddedEntry) {
-      const direct = await fetchTermExplanation(embeddedEntry);
+  async function fetchFreeLlmAnswer(questionText, glossaryEntry) {
+    const context = glossaryEntry
+      ? `Glossary hint: ${glossaryEntry.title} - ${glossaryEntry.summary}`
+      : "";
+
+    const prompt = [
+      "You are an NLP tutoring assistant.",
+      "Answer in 2-4 concise sentences.",
+      "Focus on practical meaning for beginners.",
+      "If uncertain, say what is uncertain.",
+      context,
+      `Question: ${questionText}`
+    ].filter(Boolean).join("\n");
+
+    const url = `${FREE_LLM_BASE_URL}/${encodeURIComponent(prompt)}?model=${encodeURIComponent(FREE_LLM_MODEL)}`;
+    const response = await fetch(url, {
+      headers: {
+        Accept: "text/plain"
+      }
+    });
+
+    if (!response.ok) return "";
+
+    const text = String(await response.text()).trim();
+    if (!text) return "";
+
+    // Remove occasional leading labels from model output.
+    return text.replace(/^answer\s*:\s*/i, "").slice(0, 1200).trim();
+  }
+
+  async function fetchQuestionExplanation(questionText, glossaryEntry) {
+    if (glossaryEntry) {
+      const direct = await fetchTermExplanation(glossaryEntry);
       if (direct) return direct;
     }
 
-    const candidates = extractQuestionCandidates(questionText);
+    const candidates = extractQuestionCandidates(questionText, glossaryEntry);
     for (let i = 0; i < candidates.length; i += 1) {
       const wikipedia = await fetchWikipediaSummary(candidates[i]);
       if (!wikipedia) continue;
 
-      const wikidata = wikipedia.wikidataId
-        ? await fetchWikidataDescription(wikipedia.wikidataId)
-        : null;
-
-      return {
-        title: wikipedia.title,
-        summary: wikipedia.summary,
-        wikipediaUrl: wikipedia.wikipediaUrl,
-        wikidataId: wikipedia.wikidataId,
-        wikidataDescription: wikidata && wikidata.description ? wikidata.description : "",
-        wikidataUrl: wikipedia.wikidataId
-          ? `https://www.wikidata.org/wiki/${encodeURIComponent(wikipedia.wikidataId)}`
-          : ""
-      };
+      return buildExplanationFromWikipedia(wikipedia);
     }
 
     return null;
@@ -539,7 +602,7 @@
     return regex.test(haystack);
   }
 
-  function extractQuestionCandidates(questionText) {
+  function extractQuestionCandidates(questionText, glossaryEntry) {
     const raw = String(questionText || "").trim();
     if (!raw) return [];
 
@@ -559,6 +622,13 @@
       stripped,
       stripped ? `${stripped} natural language processing` : ""
     ].filter(Boolean);
+
+    if (glossaryEntry) {
+      const entryCandidates = buildEntrySearchCandidates(glossaryEntry);
+      for (let i = 0; i < entryCandidates.length; i += 1) {
+        candidates.push(entryCandidates[i]);
+      }
+    }
 
     if (stripped) {
       const words = stripped.split(" ").filter(Boolean);
@@ -580,45 +650,114 @@
   }
 
   async function fetchTermExplanation(entry) {
-    const candidates = [entry.term]
-      .concat(entry.aliases || [])
-      .concat([`${entry.term} natural language processing`]);
+    const candidates = buildEntrySearchCandidates(entry);
 
     for (let i = 0; i < candidates.length; i += 1) {
       const candidate = candidates[i];
       const wikipedia = await fetchWikipediaSummary(candidate);
       if (!wikipedia) continue;
 
-      const wikidata = wikipedia.wikidataId
-        ? await fetchWikidataDescription(wikipedia.wikidataId)
-        : null;
-
-      return {
-        title: wikipedia.title,
-        summary: wikipedia.summary,
-        wikipediaUrl: wikipedia.wikipediaUrl,
-        wikidataId: wikipedia.wikidataId,
-        wikidataDescription: wikidata && wikidata.description ? wikidata.description : "",
-        wikidataUrl: wikipedia.wikidataId
-          ? `https://www.wikidata.org/wiki/${encodeURIComponent(wikipedia.wikidataId)}`
-          : ""
-      };
+      return buildExplanationFromWikipedia(wikipedia);
     }
 
     return null;
   }
 
+  function buildEntrySearchCandidates(entry) {
+    const summaryKeywords = extractSummaryKeywords(entry.summary);
+
+    return [entry.term]
+      .concat([entry.title || entry.term])
+      .concat(entry.aliases || [])
+      .concat([`${entry.term} natural language processing`])
+      .concat([`${entry.term} computer programming`])
+      .concat([`${entry.title || entry.term} computer science`])
+      .concat(summaryKeywords.map((keyword) => `${entry.term} ${keyword}`));
+  }
+
+  function extractSummaryKeywords(summary) {
+    const stopwords = new Set([
+      "a", "an", "the", "is", "are", "that", "this", "it", "its", "for", "in", "of", "on", "to", "and", "or", "as", "by", "with", "from", "can", "you", "your", "used", "using", "into", "such"
+    ]);
+
+    const words = normalizeForSearch(summary)
+      .replace(/[^a-z0-9\s-]/g, " ")
+      .split(" ")
+      .map((word) => word.trim())
+      .filter((word) => word.length >= 4 && !stopwords.has(word));
+
+    const unique = [];
+    const seen = new Set();
+    for (let i = 0; i < words.length; i += 1) {
+      const word = words[i];
+      if (seen.has(word)) continue;
+      seen.add(word);
+      unique.push(word);
+      if (unique.length >= 4) break;
+    }
+
+    return unique;
+  }
+
   async function fetchWikipediaSummary(query) {
-    const searchUrl = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(query)}&limit=1&namespace=0&format=json&origin=*`;
+    const titleCandidates = await fetchWikipediaTitleCandidates(query);
+
+    for (let i = 0; i < titleCandidates.length; i += 1) {
+      const summary = await fetchWikipediaSummaryByTitle(titleCandidates[i]);
+      if (summary) return summary;
+    }
+
+    return null;
+  }
+
+  async function fetchWikipediaTitleCandidates(query) {
+    const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&srlimit=5&format=json&origin=*`;
     const searchResponse = await fetch(searchUrl);
-    if (!searchResponse.ok) return null;
 
-    const searchPayload = await searchResponse.json();
-    const titles = Array.isArray(searchPayload) ? searchPayload[1] : [];
-    const title = Array.isArray(titles) ? titles[0] : "";
-    if (!title) return null;
+    const titles = [];
+    if (searchResponse.ok) {
+      const payload = await searchResponse.json();
+      const results = payload && payload.query && Array.isArray(payload.query.search)
+        ? payload.query.search
+        : [];
 
-    const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.replace(/\s+/g, "_"))}`;
+      results.forEach((result) => {
+        if (!result || !result.title) return;
+        titles.push(String(result.title));
+      });
+    }
+
+    if (!titles.length) {
+      const fallbackUrl = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(query)}&limit=3&namespace=0&format=json&origin=*`;
+      const fallbackResponse = await fetch(fallbackUrl);
+      if (fallbackResponse.ok) {
+        const fallbackPayload = await fallbackResponse.json();
+        const fallbackTitles = Array.isArray(fallbackPayload) ? fallbackPayload[1] : [];
+        if (Array.isArray(fallbackTitles)) {
+          fallbackTitles.forEach((title) => {
+            if (!title) return;
+            titles.push(String(title));
+          });
+        }
+      }
+    }
+
+    titles.push(query);
+
+    const unique = [];
+    const seen = new Set();
+    titles.forEach((title) => {
+      const normalized = normalizeForSearch(title);
+      if (!normalized || seen.has(normalized)) return;
+      seen.add(normalized);
+      unique.push(title);
+    });
+
+    return unique.slice(0, 6);
+  }
+
+  async function fetchWikipediaSummaryByTitle(title) {
+    const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(String(title).replace(/\s+/g, "_"))}`;
     const summaryResponse = await fetch(summaryUrl, {
       headers: {
         Accept: "application/json"
@@ -638,8 +777,25 @@
         && summaryPayload.content_urls.desktop
         && summaryPayload.content_urls.desktop.page
         ? summaryPayload.content_urls.desktop.page
-        : `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replace(/\s+/g, "_"))}`,
+        : `https://en.wikipedia.org/wiki/${encodeURIComponent(String(title).replace(/\s+/g, "_"))}`,
       wikidataId: summaryPayload.wikibase_item || ""
+    };
+  }
+
+  async function buildExplanationFromWikipedia(wikipedia) {
+    const wikidata = wikipedia.wikidataId
+      ? await fetchWikidataDescription(wikipedia.wikidataId)
+      : null;
+
+    return {
+      title: wikipedia.title,
+      summary: wikipedia.summary,
+      wikipediaUrl: wikipedia.wikipediaUrl,
+      wikidataId: wikipedia.wikidataId,
+      wikidataDescription: wikidata && wikidata.description ? wikidata.description : "",
+      wikidataUrl: wikipedia.wikidataId
+        ? `https://www.wikidata.org/wiki/${encodeURIComponent(wikipedia.wikidataId)}`
+        : ""
     };
   }
 
