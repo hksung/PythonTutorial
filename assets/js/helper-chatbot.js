@@ -504,7 +504,14 @@
     ];
 
     if (explanation.example) {
-      html.push(`<p><em>Example:</em> <code style="background: #f0f0f0; padding: 2px 4px; border-radius: 3px;">${escapeHtml(explanation.example)}</code></p>`);
+      const exampleText = String(explanation.example);
+
+      if (exampleText.includes("\n")) {
+        html.push(`<p><em>Example:</em></p>`);
+        html.push(`<pre style="margin: 0.25rem 0 0; padding: 0.55rem 0.65rem; border-radius: 0.45rem; background: #e2e8f0; overflow-x: auto;"><code class="language-python" style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; white-space: pre;">${escapeHtml(exampleText)}</code></pre>`);
+      } else {
+        html.push(`<p><em>Example:</em> <code style="background: #f0f0f0; padding: 2px 4px; border-radius: 3px;">${escapeHtml(exampleText)}</code></p>`);
+      }
     }
 
     if (explanation.wikidataDescription
