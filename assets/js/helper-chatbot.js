@@ -6,7 +6,7 @@
   const panel = root.querySelector(".helper-chatbot__panel");
   const closeButton = root.querySelector(".helper-chatbot__close");
   const messages = root.querySelector(".helper-chatbot__messages");
-  const supportedTermButtons = root.querySelectorAll("[data-term]");
+  const termsContainer = root.querySelector("[data-supported-terms]");
 
   const glossary = [
     {
@@ -312,10 +312,24 @@
   ];
 
   let panelOpen = false;
+  let visibleTerms = [];
 
-  supportedTermButtons.forEach((button) => {
-    button.addEventListener("click", () => explainTerm(button.getAttribute("data-term") || button.textContent || ""));
-  });
+  const MAX_VISIBLE_TERMS = 12;
+  const MAX_MESSAGES = 14;
+
+  renderRelevantTerms();
+
+  if (termsContainer) {
+    termsContainer.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+
+      const button = target.closest("[data-term]");
+      if (!button) return;
+
+      explainTerm(button.getAttribute("data-term") || button.textContent || "");
+    });
+  }
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && panelOpen) {
@@ -337,10 +351,11 @@
     const entry = findEntry(term);
 
     if (!entry) {
+      const supported = visibleTerms.length ? visibleTerms : glossary;
       addMessage("assistant", {
         html: [
           `<p>I only explain these highlighted terms:</p>`,
-          `<pre class="helper-chatbot__terms">${escapeHtml(glossary.map((item) => item.term).join("\n"))}</pre>`,
+          `<pre class="helper-chatbot__terms">${escapeHtml(supported.map((item) => item.term).join("\n"))}</pre>`,
           `<p>Try highlighting one of those words exactly.</p>`
         ].join("")
       });
@@ -380,7 +395,115 @@
     node.className = `helper-chatbot__message helper-chatbot__message--${role}`;
     node.innerHTML = `<strong>${escapeHtml(message.title)}</strong>${message.html}`;
     messages.appendChild(node);
+
+    while (messages.children.length > MAX_MESSAGES) {
+      messages.removeChild(messages.firstElementChild);
+    }
+
     messages.scrollTop = messages.scrollHeight;
+  }
+
+  function renderRelevantTerms() {
+    if (!termsContainer) return;
+
+    visibleTerms = getRelevantTerms();
+
+    termsContainer.innerHTML = "";
+    visibleTerms.forEach((entry) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "helper-chatbot__term";
+      button.setAttribute("data-term", entry.term);
+      button.textContent = entry.term;
+      termsContainer.appendChild(button);
+    });
+  }
+
+  function getRelevantTerms() {
+    const text = getPageText();
+    const seen = new Set();
+
+    const scored = glossary
+      .map((entry) => {
+        const terms = [entry.term].concat(entry.aliases || []);
+        const positions = terms
+          .map((candidate) => findTermPosition(text, candidate))
+          .filter((position) => position >= 0);
+
+        if (!positions.length) return null;
+
+        return {
+          entry,
+          position: Math.min.apply(null, positions)
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.position - b.position);
+
+    const selected = [];
+    for (let i = 0; i < scored.length; i += 1) {
+      const item = scored[i];
+      if (seen.has(item.entry.term)) continue;
+      seen.add(item.entry.term);
+      selected.push(item.entry);
+      if (selected.length >= MAX_VISIBLE_TERMS) break;
+    }
+
+    if (selected.length) return selected;
+
+    return glossary.slice(0, MAX_VISIBLE_TERMS);
+  }
+
+  function getPageText() {
+    const source = getPrimaryContentElement();
+    return normalizeForSearch(source ? source.textContent || "" : "");
+  }
+
+  function getPrimaryContentElement() {
+    const preferred = document.querySelector("main")
+      || document.querySelector("article")
+      || document.querySelector(".post-content")
+      || document.querySelector(".page-content");
+
+    if (preferred) return preferred;
+
+    // Fall back to body clone with non-content regions removed.
+    const body = document.body;
+    if (!body) return null;
+
+    const clone = body.cloneNode(true);
+    if (!(clone instanceof Element)) return body;
+
+    clone.querySelectorAll("nav, footer, header, aside, script, style, [data-helper-chatbot]").forEach((node) => {
+      node.remove();
+    });
+
+    return clone;
+  }
+
+  function normalizeForSearch(value) {
+    return String(value || "")
+      .toLowerCase()
+      .replace(/\s+/g, " ");
+  }
+
+  function findTermPosition(text, candidate) {
+    const normalized = normalizeForSearch(candidate);
+    if (!normalized) return -1;
+
+    const latinNumberOnly = /^[a-z0-9\s-]+$/.test(normalized);
+    if (latinNumberOnly) {
+      const escaped = escapeRegExp(normalized).replace(/\s+/g, "\\s+");
+      const regex = new RegExp(`(?:^|[^a-z0-9])${escaped}(?=$|[^a-z0-9])`, "i");
+      const match = regex.exec(text);
+      return match ? match.index : -1;
+    }
+
+    return text.indexOf(normalized);
+  }
+
+  function escapeRegExp(value) {
+    return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
 
   function escapeHtml(value) {

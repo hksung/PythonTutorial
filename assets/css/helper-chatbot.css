@@ -40,8 +40,11 @@
 
 .helper-chatbot__panel {
   width: min(24rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
   margin-bottom: 0.75rem;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
   border: 1px solid rgba(127, 127, 127, 0.25);
   border-radius: 1.15rem;
   background: rgba(255, 255, 255, 0.96);
@@ -57,10 +60,14 @@
 }
 
 .helper-chatbot__header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   align-items: flex-start;
   justify-content: space-between;
   padding: 1rem 1rem 0.75rem;
   border-bottom: 1px solid rgba(127, 127, 127, 0.16);
+  background: rgba(255, 255, 255, 0.98);
 }
 
 .helper-chatbot__eyebrow {
@@ -101,6 +108,7 @@
 
 .helper-chatbot__body {
   padding: 0.9rem 1rem 1rem;
+  overflow: auto;
 }
 
 .helper-chatbot__terms-wrap {
@@ -124,6 +132,8 @@
   background: #f8fafc;
   display: grid;
   gap: 0.45rem;
+  max-height: min(16rem, 36vh);
+  overflow: auto;
 }
 
 .helper-chatbot__term {
@@ -223,5 +233,6 @@
 
   .helper-chatbot__panel {
     width: 100%;
+    max-height: calc(100vh - 1.5rem);
   }
 }
