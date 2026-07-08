@@ -318,8 +318,12 @@
   let panelOpen = false;
   let visibleTerms = [];
   const termExplanationCache = new Map();
-  const FREE_LLM_BASE_URL = "https://text.pollinations.ai";
-  const FREE_LLM_MODELS = ["mistral", "qwen", "llama"];
+  const FREE_LLM_BASE_URL = "https://openrouter.ai/api/v1/chat/completions";
+  const FREE_LLM_MODELS = [
+    "deepseek/deepseek-r1:free",
+    "mistralai/mistral-7b-instruct:free",
+    "meta-llama/llama-2-7b-chat:free"
+  ];
   const FREE_LLM_TIMEOUT_MS = 16000;
 
   const MAX_VISIBLE_TERMS = 12;
@@ -415,7 +419,7 @@
     });
 
     addMessage("assistant", {
-      html: `<p>Asking free open LLM for <strong>${escapeHtml(entry.term)}</strong>...</p>`
+      html: `<p>Asking OpenRouter LLM for <strong>${escapeHtml(entry.term)}</strong>...</p>`
     });
 
     try {
@@ -423,7 +427,7 @@
       if (!llmAnswer) {
         addMessage("assistant", {
           html: [
-            `<p>I could not reach a reliable free LLM response for <strong>${escapeHtml(entry.term)}</strong>.</p>`,
+            `<p>I could not reach a reliable OpenRouter response for <strong>${escapeHtml(entry.term)}</strong>.</p>`,
             `<p>I kept the glossary definition above as the primary answer.</p>`
           ].join("")
         });
@@ -443,7 +447,7 @@
       addMessage("assistant", {
         html: [
           renderExplanationHtml(explanation),
-          `<p><em>Source:</em> Free open LLM (${escapeHtml(llmAnswer.model)})</p>`
+          `<p><em>Source:</em> OpenRouter (${escapeHtml(llmAnswer.model)})</p>`
         ].join("")
       });
     } catch (error) {
@@ -470,7 +474,7 @@
     }
 
     addMessage("assistant", {
-      html: `<p>Checking glossary and asking a free open LLM for <strong>${escapeHtml(query)}</strong>...</p>`
+      html: `<p>Checking glossary and asking OpenRouter LLM for <strong>${escapeHtml(query)}</strong>...</p>`
     });
 
     try {
@@ -499,7 +503,7 @@
         addMessage("assistant", {
           html: [
             renderExplanationHtml(llmExplanation),
-            `<p><em>Source:</em> Free open LLM (${escapeHtml(llmAnswer.model)})</p>`
+            `<p><em>Source:</em> OpenRouter (${escapeHtml(llmAnswer.model)})</p>`
           ].join("")
         });
         return;
@@ -507,14 +511,14 @@
 
       if (glossaryEntry) {
         addMessage("assistant", {
-          html: `<p>Free LLM is temporarily unavailable, so I used the glossary answer above.</p>`
+          html: `<p>OpenRouter LLM is temporarily unavailable, so I used the glossary answer above.</p>`
         });
         return;
       }
 
       addMessage("assistant", {
         html: [
-          `<p>I could not get a reliable free LLM response for <strong>${escapeHtml(query)}</strong>.</p>`,
+          `<p>I could not get a reliable OpenRouter LLM response for <strong>${escapeHtml(query)}</strong>.</p>`,
           `<p>Please try again, or ask with a simpler NLP term.</p>`
         ].join("")
       });
@@ -536,17 +540,10 @@
 
     for (let p = 0; p < prompts.length; p += 1) {
       const prompt = prompts[p];
-      const requestCandidates = [{ model: "auto", url: `${FREE_LLM_BASE_URL}/${encodeURIComponent(prompt)}` }]
-        .concat(FREE_LLM_MODELS.map((model) => {
-          return {
-            model,
-            url: `${FREE_LLM_BASE_URL}/${encodeURIComponent(prompt)}?model=${encodeURIComponent(model)}`
-          };
-        }));
 
-      for (let i = 0; i < requestCandidates.length; i += 1) {
-        const candidate = requestCandidates[i];
-        const text = await fetchPlainTextWithTimeout(candidate.url, FREE_LLM_TIMEOUT_MS);
+      for (let i = 0; i < FREE_LLM_MODELS.length; i += 1) {
+        const model = FREE_LLM_MODELS[i];
+        const text = await fetchOpenRouterResponse(prompt, model, FREE_LLM_TIMEOUT_MS);
         if (!text) continue;
 
         const cleaned = text.replace(/^answer\s*:\s*/i, "").slice(0, 1200).trim();
@@ -554,12 +551,93 @@
 
         return {
           text: cleaned,
-          model: candidate.model
+          model: model
         };
       }
     }
 
     return null;
+  }
+
+  function getGeminiApiKey() {
+    const inlineKey = String(root.getAttribute("data-gemini-api-key") || "").trim();
+    if (inlineKey) return inlineKey;
+
+    const queryKey = getGeminiKeyFromQuery();
+    if (queryKey) {
+      try {
+        localStorage.setItem(GEMINI_API_KEY_STORAGE_KEY, queryKey);
+      } catch (error) {
+        // Ignore storage errors and continue with the in-memory key.
+      }
+      return queryKey;
+    }
+
+    try {
+      return String(localStorage.getItem(GEMINI_API_KEY_STORAGE_KEY) || "").trim();
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function getGeminiKeyFromQuery() {
+    try {
+      const params = new URLSearchParams(window.location.search || "");
+      return String(params.get(GEMINI_API_KEY_QUERY_PARAM) || "").trim();
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function formatLlmSource(answer) {
+    if (!answer || !answer.provider) return answer && answer.model ? answer.model : "LLM";
+    if (answer.provider === "gemini") return `Google AI Studio (${answer.model})`;
+    if (answer.provider === "pollinations") return `Pollinations (${answer.model})`;
+    return answer.model || answer.provider;
+  }
+
+  async function fetchGeminiTextWithTimeout(prompt, apiKey, timeoutMs) {
+    if (!prompt || !apiKey) return "";
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      controller.abort();
+    }, timeoutMs);
+
+    try {
+      const response = await fetch(`${GEMINI_API_BASE_URL}?key=${encodeURIComponent(apiKey)}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: prompt
+                }
+              ]
+            }
+          ]
+        }),
+        signal: controller.signal
+      });
+
+      if (!response.ok) return "";
+
+      const payload = await response.json();
+      const parts = (((payload || {}).candidates || [])[0] || {}).content;
+      const textParts = (parts && parts.parts) || [];
+      return textParts
+        .map((part) => String(part && part.text ? part.text : ""))
+        .join(" ")
+        .trim();
+    } catch (error) {
+      return "";
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   function buildReliablePrompt(questionText, glossaryEntry, retryMode) {
@@ -624,22 +702,39 @@
     return titleMatch || termMatch || hasSummaryToken;
   }
 
-  async function fetchPlainTextWithTimeout(url, timeoutMs) {
+  async function fetchOpenRouterResponse(prompt, model, timeoutMs) {
     const controller = new AbortController();
     const timer = setTimeout(() => {
       controller.abort();
     }, timeoutMs);
 
     try {
-      const response = await fetch(url, {
+      const response = await fetch(FREE_LLM_BASE_URL, {
+        method: "POST",
         headers: {
-          Accept: "text/plain"
+          "Content-Type": "application/json"
         },
+        body: JSON.stringify({
+          model: model,
+          messages: [
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 300
+        }),
         signal: controller.signal
       });
+
       if (!response.ok) return "";
 
-      const text = String(await response.text()).trim();
+      const payload = await response.json();
+      const choices = payload && payload.choices ? payload.choices : [];
+      const firstChoice = choices[0];
+      const message = firstChoice && firstChoice.message ? firstChoice.message : {};
+      const text = String(message.content || "").trim();
       return text;
     } catch (error) {
       return "";
