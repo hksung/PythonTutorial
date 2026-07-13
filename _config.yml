@@ -37,4 +37,11 @@ minima:
   # date_format: "%b-%d-%Y"
 
 header_pages:
-  - 0.md
+  - doc/0.md
+
+defaults:
+  - scope:
+      path: "doc"
+      type: "pages"
+    values:
+      permalink: "/:basename.html"

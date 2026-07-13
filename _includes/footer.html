@@ -1,0 +1,40 @@
+{% assign repo_nwo = site.github.repository_nwo | default: "hksung/PythonTutorial" %}
+{% assign repo_owner = repo_nwo | split: "/" | first %}
+
+<footer class="site-footer h-card">
+	<div class="wrapper">
+		<p>
+			Maintained by Hakyung Sung
+			(<a href="https://github.com/{{ repo_owner }}" target="_blank" rel="noopener">@{{ repo_owner }}</a>)
+		</p>
+		<p>
+			Last updated:
+			<span id="last-updated-date">{{ site.time | date: "%Y-%m-%d" }}</span>
+		</p>
+	</div>
+</footer>
+
+<script>
+	(function () {
+		var target = document.getElementById("last-updated-date");
+		if (!target) return;
+
+		fetch("https://api.github.com/repos/{{ repo_nwo }}")
+			.then(function (response) {
+				if (!response.ok) throw new Error("GitHub API request failed");
+				return response.json();
+			})
+			.then(function (data) {
+				if (!data || !data.pushed_at) return;
+				var date = new Date(data.pushed_at);
+				if (isNaN(date.getTime())) return;
+				var yyyy = date.getFullYear();
+				var mm = String(date.getMonth() + 1).padStart(2, "0");
+				var dd = String(date.getDate()).padStart(2, "0");
+				target.textContent = yyyy + "-" + mm + "-" + dd;
+			})
+			.catch(function () {
+				// Keep build date fallback when API call is unavailable.
+			});
+	})();
+</script>
