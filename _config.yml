@@ -1,6 +1,8 @@
 title: Python tutorial
 author: Hakyung Sung
 email: sungh@hawaii.edu
+url: "https://hksung.github.io"
+baseurl: "/PythonTutorial"
 
 description: >
   
@@ -35,4 +37,4 @@ minima:
   # date_format: "%b-%d-%Y"
 
 header_pages:
-    - 0.md
+  - 0.md

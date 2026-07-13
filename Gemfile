@@ -1,0 +1,10 @@
+source "https://rubygems.org"
+
+gem "jekyll", "~> 4.3.3"
+gem "jekyll-sass-converter", "~> 2.2"
+gem "minima", "~> 2.5"
+gem "jekyll-feed", "~> 0.17"
+gem "jekyll-seo-tag", "~> 2.8"
+gem "sassc", "~> 2.4"
+gem "webrick", "~> 1.8"
+gem "ffi", "= 1.16.3"
