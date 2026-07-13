@@ -36,9 +36,11 @@ permalink: /
 
 ### Text processing
 
-- Tokenization, lemmatization, frequency calculation
+- Tokenization, lemmatization, subword tokenization, and frequency calculation
+
   - [Tokenization](5-1.html)
   - [Lemmatization](5-2.html)
-  - [Frequency calculation](5-3.html)
-  - [Exercises](5-4.html)
+  - [Subword tokenization](5-3.html)
+  - [Frequency calculation](5-4.html)
+  - [Exercises](5-5.html)
 
