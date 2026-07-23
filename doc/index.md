@@ -34,13 +34,14 @@ permalink: /
   - [Working with files](4-5.html)
   - [Exercises](4-6.html)
 
-### Text processing
-
-- Tokenization, lemmatization, subword tokenization, frequency calculation
-
+### Text pre-processing
   - [Tokenization](5-1.html)
   - [Lemmatization](5-2.html)
   - [Subword tokenization](5-3.html)
   - [Frequency calculation](5-4.html)
   - [Exercises](5-5.html)
 
+### Vector semantics
+  - [Count-based models and SVD](6-1.html)
+  - [Pretrained Word2Vec embeddings](6-2.html)
+  - [GloVe embeddings](6-3.html)  
