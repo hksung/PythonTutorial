@@ -45,3 +45,6 @@ permalink: /
   - [Count-based models and SVD](6-1.html)
   - [Pretrained Word2Vec embeddings](6-2.html)
   - [GloVe embeddings](6-3.html)  
+
+### POS tagging
+  - [Intro](7-1.html)
