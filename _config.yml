@@ -36,8 +36,6 @@ minima:
   #   Refer to https://shopify.github.io/liquid/filters/date/ for valid values.
   # date_format: "%b-%d-%Y"
 
-header_pages:
-  - doc/0.md
 
 defaults:
   - scope:
