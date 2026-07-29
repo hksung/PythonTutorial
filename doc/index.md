@@ -48,3 +48,7 @@ permalink: /
 
 ### POS tagging
   - [Intro](7-1.html)
+  - [English POS tagging](7-2.html)
+  - [English Exercises](7-3.html)
+  - [Korean POS tagging](7-4.html)
+  - [Exercises](7-5.html)
