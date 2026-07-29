@@ -12,21 +12,21 @@ permalink: /
   - [Three ways to run code](1-3.html)
   - [Environment management](1-4.html)
 
-- Values, variables, functions, methods
+- Basics I
   - [Values](2-1.html)
   - [Variables](2-2.html)
   - [Functions](2-3.html)
   - [Methods](2-4.html)
   - [Exercises](2-5.html)
 
-- Strings, lists, conditional statement, loops
+- Basics II
   - [Start with strings](3-1.html)
   - [Lists](3-2.html)
   - [Conditional statements](3-3.html)
   - [Loops](3-4.html)
   - [Exercises](3-5.html)
 
-- Tuples, dictionaries, functions, classes, files
+- Basics III
   - [Tuples](4-1.html)
   - [Dictionaries](4-2.html)
   - [More about functions](4-3.html)
