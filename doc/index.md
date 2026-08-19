@@ -47,8 +47,14 @@ permalink: /
   - [GloVe embeddings](6-3.html)  
 
 ### POS tagging
-  - [Intro](7-1.html)
+  - [Introduction](7-1.html)
   - [English POS tagging](7-2.html)
   - [English Exercises](7-3.html)
   - [Korean POS tagging](7-4.html)
   - [Exercises](7-5.html)
+
+### Dependency parsing
+  - [Introduction](8-1.html)
+  - [English dependency parsing](8-2.html)
+  - [CoNLL-U format](8-3.html)
+  - [Exercises](8-4.html)
