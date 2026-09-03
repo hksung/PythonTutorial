@@ -17,14 +17,14 @@ permalink: /
   - [Variables](2-2.html)
   - [Functions](2-3.html)
   - [Methods](2-4.html)
-  - [Exercises](2-5.html)
+  - [Exercise 1](2-5.html)
 
 - Basics II
   - [Start with strings](3-1.html)
   - [Lists](3-2.html)
   - [Conditional statements](3-3.html)
   - [Loops](3-4.html)
-  - [Exercises](3-5.html)
+  - [Exercise 2](3-5.html)
 
 - Basics III
   - [Tuples](4-1.html)
@@ -32,7 +32,7 @@ permalink: /
   - [More about functions](4-3.html)
   - [Classes](4-4.html)
   - [Working with files](4-5.html)
-  - [Exercises](4-6.html)
+  - [Exercise 3](4-6.html)
 
 ### Text pre-processing
   - [Tokenization](5-1.html)
