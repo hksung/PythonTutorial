@@ -58,3 +58,9 @@ permalink: /
   - [English dependency parsing](8-2.html)
   - [CoNLL-U format](8-3.html)
   - [Exercises](8-4.html)
+
+### Measuring syntactic/grammatical complexity
+  - [1. Introduction](9-1.html)
+  - [2. L2SCA](9-2.html)
+  - [3. LxGrTgr](9-3.html)
+  - [4. Exercise](9-4.html)
