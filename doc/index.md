@@ -39,7 +39,7 @@ permalink: /
   - [Lemmatization](5-2.html)
   - [Subword tokenization](5-3.html)
   - [Frequency calculation](5-4.html)
-  - [Exercises](5-5.html)
+  - [Exercise](5-5.html)
 
 ### Vector semantics
   - [Count-based models and SVD](6-1.html)
@@ -51,16 +51,16 @@ permalink: /
   - [English POS tagging](7-2.html)
   - [English Exercises](7-3.html)
   - [Korean POS tagging](7-4.html)
-  - [Exercises](7-5.html)
+  - [Exercise](7-5.html)
 
 ### Dependency parsing
   - [Introduction](8-1.html)
   - [English dependency parsing](8-2.html)
   - [CoNLL-U format](8-3.html)
-  - [Exercises](8-4.html)
+  - [Exercise](8-4.html)
 
 ### Measuring syntactic/grammatical complexity
-  - [1. Introduction](9-1.html)
-  - [2. L2SCA](9-2.html)
-  - [3. LxGrTgr](9-3.html)
-  - [4. Exercise](9-4.html)
+  - [Introduction](9-1.html)
+  - [L2SCA](9-2.html)
+  - [LxGrTgr](9-3.html)
+  - [Exercise](9-4.html)
