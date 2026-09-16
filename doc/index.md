@@ -40,6 +40,7 @@ permalink: /
   - [Subword tokenization](5-3.html)
   - [Frequency calculation](5-4.html)
   - [Exercise](5-5.html)
+  - [Applying the workflow to another language](5-6.html)
 
 ### Vector semantics
   - [Count-based models and SVD](6-1.html)
