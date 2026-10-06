@@ -47,21 +47,16 @@ permalink: /
   - [Pretrained Word2Vec embeddings](6-2.html)
   - [GloVe embeddings](6-3.html)  
 
-### POS tagging
-  - [Introduction](7-1.html)
-  - [English POS tagging](7-2.html)
-  - [English Exercises](7-3.html)
-  - [Korean POS tagging](7-4.html)
-  - [Exercise](7-5.html)
-
-### Dependency parsing
-  - [Introduction](8-1.html)
-  - [English dependency parsing](8-2.html)
-  - [CoNLL-U format](8-3.html)
-  - [Exercise](8-4.html)
+### POS tagging, Dependency parsing
+  - [English POS tagging](7-1.html)
+  - [English POS tagging exercise](7-2.html)
+  - [English dependency parsing](7-3.html)
+  - [CoNLL-U format](7-4.html)
+  - [English dependency parsing exercise](7-5.html)
+  - [Packages beyond spaCy](7-6.html)
 
 ### Measuring syntactic/grammatical complexity
-  - [Introduction](9-1.html)
-  - [L2SCA](9-2.html)
-  - [LxGrTgr](9-3.html)
-  - [Exercise](9-4.html)
+  - [Introduction](8-1.html)
+  - [L2SCA](8-2.html)
+  - [LxGrTgr](8-3.html)
+  - [Exercise](8-4.html)
