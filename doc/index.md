@@ -54,9 +54,3 @@ permalink: /
   - [CoNLL-U format](7-4.html)
   - [English dependency parsing exercise](7-5.html)
   - [Packages beyond spaCy](7-6.html)
-
-### Measuring syntactic/grammatical complexity
-  - [Introduction](8-1.html)
-  - [L2SCA](8-2.html)
-  - [LxGrTgr](8-3.html)
-  - [Exercise](8-4.html)
