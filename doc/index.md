@@ -40,7 +40,6 @@ permalink: /
   - [Frequency calculation](5-3.html)
   - [Exercise](5-4.html)
   - [Applying the workflow to another language](5-5.html)
-  - [Troubleshooting](5-6.html)
 
 ### Vector semantics
   - [Count-based models and SVD](6-1.html)
@@ -54,3 +53,6 @@ permalink: /
   - [CoNLL-U format](7-4.html)
   - [English dependency parsing exercise](7-5.html)
   - [Packages beyond spaCy](7-6.html)
+
+### Troubleshooting
+  - [Troubleshooting](20.html)
