@@ -1,0 +1,271 @@
+# tagsConsidered = ingcls+advl
+# sentid = 1 (example)
+0	Running	ingcls+advl
+1	along
+2	the
+3	beach,
+4	she
+5	found
+6	a
+7	rare
+8	shell
+9	.
+
+# sentid = 2
+0	Fate	
+1	was	
+2	at	
+3	my	
+4	elbow	
+5	urging	ingcls+advl
+6	me	
+7	to	
+8	make	
+9	a	
+10	choice	
+11	.	
+
+# sentid = 3
+0	'	
+1	i	
+2	should	
+3	enjoy	
+4	taking	
+5	a	
+6	ride	
+7	through	
+8	the	
+9	forest	
+10	,	
+11	'	
+12	he	
+13	said	
+14	,	
+15	continuing	ingcls+advl
+16	to	
+17	look	
+18	at	
+19	me	
+20	.	
+
+# sentid = 4
+0	Looking	ingcls+advl
+1	at	
+2	U.s	
+3	.	
+4	history	
+5	,	
+6	one	
+7	would	
+8	conclude	
+9	that	
+10	assimilating	
+11	into	
+12	the	
+13	core	
+14	society	
+15	's	
+16	secondary	
+17	groups	
+18	does	
+19	not	
+20	necessarily	
+21	mean	
+22	entering	
+23	the	
+24	dominant	
+25	group	
+26	's	
+27	friendship	
+28	cliques	
+29	.	
+
+# sentid = 5
+0	"	
+1	oo	
+2	,	
+3	Aunt	
+4	Tossie	
+5	,	
+6	"	
+7	Nicandra	
+8	felt	
+9	very	
+10	adult	
+11	pointing	ingcls+advl
+12	out	
+13	the	
+14	dirt	
+15	with	
+16	disgust	
+17	and	
+18	pleasure	
+19	.	
+
+# sentid = 6
+0	He	
+1	breezed	
+2	along	
+3	beautifully	
+4	,	
+5	even	
+6	emulating	ingcls+advl
+7	certain	
+8	characteristic	
+9	mispronounciations	
+10	of	
+11	General	
+12	Dreedle	
+13	's,	
+14	and	
+15	he	
+16	was	
+17	not	
+18	the	
+19	least	
+20	bit	
+21	intimidated	
+22	by	
+23	General	
+24	Peckem	
+25	's	
+26	new	
+27	colonel	
+28	until	
+29	he	
+30	suddenly	
+31	recalled	
+32	that	
+33	General	
+34	Peckem	
+35	detested	
+36	General	
+37	Dreedle	
+38	.	
+
+# sentid = 7
+0	A	
+1	California	
+2	home	
+3	;	
+4	I	
+5	hid	
+6	in	
+7	the	
+8	grapevines	
+9	,	
+10	digging	ingcls+advl
+11	it	
+12	all	
+13	.	
+
+# sentid = 8
+0	She	
+1	is	
+2	sitting	
+3	at	
+4	the	
+5	kitchen	
+6	table	
+7	with	
+8	Fran	
+9	drinking	ingcls+advl
+10	bourbon	
+11	for	
+12	the	
+13	first	
+14	time	
+15	in	
+16	her	
+17	life	
+18	.	
+
+# sentid = 9
+0	She	
+1	came	
+2	to	
+3	the	
+4	window	
+5	when	
+6	he	
+7	pressed	
+8	the	
+9	button	
+10	on	
+11	the	
+12	entryphone	
+13	,	
+14	poking	ingcls+advl
+15	her	
+16	head	
+17	out	
+18	of	
+19	the	
+20	lower	
+21	half	
+22	of	
+23	the	
+24	opened	
+25	sash	
+26	window	
+27	,	
+28	through	
+29	dark	
+30	brown	
+31	curtains	
+32	.	
+
+# sentid = 10
+0	He	
+1	made	
+2	a	
+3	rising	
+4	,	
+5	growling	
+6	noise	
+7	at	
+8	the	
+9	back	
+10	of	
+11	his	
+12	throat	
+13	and	
+14	brought	
+15	the	
+16	scullion	
+17	out	
+18	from	
+19	under	
+20	his	
+21	arm	
+22	looking	ingcls+advl
+23	into	
+24	its	
+25	mask	
+26	-	
+27	face	
+28	again	
+29	.	
+
+# sentid = 11
+0	We	
+1	stood	
+2	under	
+3	a	
+4	roadlamp	
+5	,	
+6	thumbing	ingcls+advl
+7	,	
+8	when	
+9	suddenly	
+10	cars	
+11	full	
+12	of	
+13	young	
+14	kids	
+15	roared	
+16	by	
+17	with	
+18	streamers	
+19	flying	
+20	.	

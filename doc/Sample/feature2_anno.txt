@@ -1,0 +1,337 @@
+# tagsConsidered = thatcls+ncomp
+# sentid = 1	
+0	The
+1	observation
+2	that
+3	the
+4	species
+5	has
+6	adapted	thatcls+ncomp
+7	to
+8	urban
+9	environments
+10	challenges
+11	traditional
+12	views
+13	on
+14	wildlife
+15	habitat
+16	preferences.
+
+# sentid = 2
+0	What	
+1	argument	
+2	might	
+3	be	
+4	made	
+5	to	
+6	support	
+7	the	
+8	suggestion	
+9	that	
+10	the	
+11	human	
+12	species	
+13	is	
+14	no	
+15	longer	
+16	evolving	thatcls+ncomp
+17	via	
+18	natural	
+19	selection	
+20	?	
+
+# sentid = 3
+0	The	
+1	remarkable	
+2	success	
+3	of	
+4	the	
+5	human	
+6	species	
+7	in	
+8	adapting	
+9	to	
+10	a	
+11	variety	
+12	of	
+13	ecological	
+14	niches	
+15	stems	
+16	from	
+17	the	
+18	fact	
+19	that	
+20	natural	
+21	selection	
+22	has	
+23	favored	thatcls+ncomp
+24	two	
+25	important	
+26	human	
+27	characteristics	
+28	:	
+29	bipedalism	
+30	,	
+31	the	
+32	ability	
+33	to	
+34	move	
+35	about	
+36	the	
+37	environment	
+38	on	
+39	two	
+40	feet	
+41	,	
+42	and	
+43	encephalization	
+44	,	
+45	increased	
+46	brain	
+47	size	
+48	.	
+
+# sentid = 4
+0	Charles	
+1	Butts	
+2	,	
+3	the	
+4	prosecutor	
+5	who	
+6	handled	
+7	the	
+8	case	
+9	,	
+10	says	
+11	he	
+12	believes	
+13	Mr	
+14	.	
+15	Sanne	
+16	's	
+17	testimony	
+18	that	
+19	he	
+20	fired	thatcls+ncomp
+21	the	
+22	shots	
+23	was	
+24	a	
+25	plan	
+26	cooked	
+27	up	
+28	by	
+29	the	
+30	pair	
+31	,	
+32	presumably	
+33	to	
+34	help	
+35	Mr	
+36	.	
+37	Skillern	
+38	.		
+
+# sentid = 5
+0	Homans	
+1	's	
+2	social	
+3	behaviorism	
+4	(	
+5	1974	
+6	)	
+7	,	
+8	for	
+9	example	
+10	,	
+11	incorporated	
+12	the	
+13	principles	
+14	of	
+15	the	
+16	maximization	
+17	of	
+18	utility	
+19	and	
+20	diminishing	
+21	marginal	
+22	utility	
+23	from	
+24	economics	
+25	and	
+26	the	
+27	principle	
+28	that	
+29	regularities	
+30	are	
+31	based	thatcls+ncomp
+32	on	
+33	connections	
+34	between	
+35	influences	
+36	from	
+37	the	
+38	external	
+39	environment	
+40	(	
+41	stimuli	
+42	)	
+43	and	
+44	items	
+45	of	
+46	individual	
+47	behavior	
+48	(	
+49	responses	
+50	)	
+51	from	
+52	psychology	
+53	.	
+
+# sentid = 6
+0	It	
+1	is	
+2	my	
+3	hope	
+4	that	
+5	I	
+6	shall	
+7	see	thatcls+ncomp
+8	you	
+9	one	
+10	day	
+11	soon	
+12	.	
+
+# sentid = 7
+0	Colonel	
+1	Cathcart	
+2	was	
+3	seized	
+4	with	
+5	such	
+6	fright	
+7	that	
+8	he	
+9	almost	
+10	beckoned	thatcls+ncomp
+11	to	
+12	Colonel	
+13	Korn	
+14	.	
+
+# sentid = 8
+0	Young	
+1	children	
+2	understand	
+3	the	
+4	world	
+5	in	
+6	radically	
+7	different	
+8	ways	
+9	than	
+10	adults	
+11	do	
+12	,	
+13	a	
+14	fact	
+15	that	
+16	we	
+17	sometimes	
+18	overlook	thatcls+ncomp
+19	when	
+20	teaching	
+21	children	
+22	.	
+
+# sentid = 9
+0	The	
+1	last	
+2	words	
+3	were	
+4	spoken	
+5	with	
+6	such	
+7	peculiar	
+8	emphasis	
+9	that	
+10	Stormgren	
+11	immediately	
+12	froze	thatcls+ncomp
+13	in	
+14	his	
+15	seat	
+16	.	
+
+# sentid = 10
+0	about	
+1	the	
+2	companies	
+3	claim	
+4	that	
+5	they	
+6	are	
+7	improving	thatcls+ncomp
+8	grades	
+9	by	
+10	taking	
+11	the	
+12	people	
+13	's	
+14	money	
+15	and	
+16	putting	
+17	them	
+18	through	
+19	this	
+20	course	
+21	.	
+
+# sentid = 11
+0	A	
+1	century	
+2	ago	
+3	,	
+4	people	
+5	influenced	
+6	by	
+7	phrenology	
+8	the	
+9	bogus	
+10	nineteenth	
+11	-	
+12	century	
+13	theory	
+14	that	
+15	personality	
+16	was	
+17	affected	thatcls+ncomp
+18	by	
+19	the	
+20	shape	
+21	of	
+22	the	
+23	human	
+24	skull	
+25	praised	
+26	the	
+27	tastes	
+28	of	
+29	those	
+30	they	
+31	termed	
+32	"	
+33	highbrows	
+34	"	
+35	while	
+36	dismissing	
+37	others	
+38	'	
+39	interests	
+40	as	
+41	"	
+42	lowbrow	
+43	.	
+44	"	
