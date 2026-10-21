@@ -55,7 +55,7 @@ permalink: /
   - [Packages beyond spaCy](7-6.html)
 
 ### Linguistic annotation
-  - [In-class exercise](8.html)
+  - [Lexicogrammatical feature annotation](8.html)
 
 ### Troubleshooting
   - [Troubleshooting](20.html)
