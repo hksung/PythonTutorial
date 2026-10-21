@@ -54,7 +54,7 @@ permalink: /
   - [English dependency parsing exercise](7-5.html)
   - [Packages beyond spaCy](7-6.html)
 
-### (Not Python) Linguistic annotation
+### Linguistic annotation
   - [In-class exercise](8.html)
 
 ### Troubleshooting
