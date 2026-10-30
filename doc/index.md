@@ -58,7 +58,11 @@ permalink: /
   - [Lexicogrammatical feature annotation](8.html)
 
 ### Training models
-  - Training a custom tagger(9-1.html)
+  - [Prepare dataset](9-1.html)
+  - [Install the packages](9-2.html)
+  - [Ready for training](9-3.html)
+  - [Training](9-4.html)
+  - [Evaluation](9-5.html)
 
 ### Troubleshooting
   - [Troubleshooting](20.html)
