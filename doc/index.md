@@ -57,5 +57,8 @@ permalink: /
 ### Linguistic annotation
   - [Lexicogrammatical feature annotation](8.html)
 
+### Training models
+  - Training a custom tagger(9-1.html)
+
 ### Troubleshooting
   - [Troubleshooting](20.html)
