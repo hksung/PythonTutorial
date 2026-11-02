@@ -63,6 +63,7 @@ permalink: /
   - [Ready for training](9-3.html)
   - [Training](9-4.html)
   - [Evaluation](9-5.html)
+  - [Build your own tagger](9-6.html)
 
 ### Troubleshooting
   - [Troubleshooting](20.html)
